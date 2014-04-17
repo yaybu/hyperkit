@@ -9,9 +9,66 @@ hyperkit
 
 """
 
-from hyperkit.spec import MachineSpec
+from hyperkit.spec import MachineSpec, PasswordAuth, SSHAuth, Hardware, CanonicalImage, LiteralImage
 from hyperkit.hypervisor import VirtualBox
 import argparse
+
+def make_password_auth(args):
+    return PasswordAuth(username=args.username, password=args.password)
+
+def make_public_key_auth(args):
+    raise NotImplementedError()
+
+def make_agent_key_auth(args):
+    raise NotImplementedError()
+
+def make_auth(args):
+    scheme = None
+    # Only one of password, public_key and key_id should be specified
+    if args.password is not None:
+        scheme = "password"
+    if args.public_key is not None:
+        if scheme is not None:
+            raise ValueError("Too many authentication options provided")
+        scheme = "public_key"
+    if args.key_id is not None:
+        if scheme is not None:
+            raise ValueError("Too many authentication options provided")
+        scheme = "key_id"
+    if scheme == "password":
+        return make_password_auth(args)
+    elif scheme == "public_key":
+        return make_public_key_auth(args)
+    else:
+        return make_agent_key_auth(args)
+
+def make_hardware(args):
+    return None
+
+def make_image(args):
+    return None
+
+def make_spec(args):
+    auth = make_auth(args)
+    hardware = make_hardware(args)
+    image = make_image(args)
+    return MachineSpec(args.name, auth=auth, hardware=hardware, image=image)
+
+def create(args):
+    print args
+    spec = make_spec(args)
+    #hypervisor = VirtualBox()
+    #vm = hypervisor.create(spec)
+    #vm.start()
+
+def start(args):
+    pass
+
+def destroy(args):
+    pass
+
+def ip(args):
+    pass
 
 def main():
     parser = argparse.ArgumentParser()
@@ -31,20 +88,23 @@ def main():
     create_parser.add_argument("--memory", default="128", help="The amount of memory for the new virtual machine")
     create_parser.add_argument("--cpus", default="1", help="The number of cpus for the new virtual machine")
     create_parser.add_argument("--image", help="A file path or url to an image to use instead of the distro's default")
+    create_parser.add_argument("--options", help="hypervisor specific options to pass to the new VM")
+    create_parser.set_defaults(func=create)
 
     start_parser = sub.add_parser("start", help="Start a named virtual machine")
     start_parser.add_argument("name", help="The name of the virtual machine as passed to create")
+    start_parser.set_defaults(func=start)
 
     destroy_parser = sub.add_parser("destroy", help="Destroy a named virtual machine")
     destroy_parser.add_argument("name", help="The name of the virtual machine as passed to create")
+    destroy_parser.set_defaults(func=destroy)
 
     ip_parser = sub.add_parser("ip", help="Print the IP address of the virtual machine, if available")
     ip_parser.add_argument("name", help="The name of the virtual machine as passed to create")
+    ip_parser.set_defaults(func=ip)
 
     args = parser.parse_args()
+    args.func(args)
 
-    #spec = MachineSpec()
-    #hypervisor = VirtualBox()
-    #vm = hypervisor.create(spec)
-    #vm.start()
+
 
