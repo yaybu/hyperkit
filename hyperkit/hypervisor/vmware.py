@@ -240,6 +240,10 @@ class VMWare(Hypervisor):
         "fedora": VMWareFedoraCloudConfig,
     }
 
+    @property
+    def present(self):
+        return startvm.pathname is not None
+
     def create(self, spec, image_dir="~/.hyperkit"):
 
         image_dir = os.path.expanduser(image_dir)

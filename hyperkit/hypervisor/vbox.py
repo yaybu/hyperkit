@@ -139,6 +139,10 @@ class VirtualBox(Hypervisor):
         None: "Linux_64",
     }
 
+    @property
+    def present(self):
+        return createvm.pathname is not None
+
     def create(self, spec):
         """ Create a new virtual machine in the specified directory from the base image. """
 
