@@ -22,6 +22,7 @@ setup(name='Hyperkit',
       zip_safe=False,
       install_requires=[
           'setuptools',
+          'pyyaml',
       ],
       extras_require = {
           'test': ['unittest2', 'mock'],
