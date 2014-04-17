@@ -1,0 +1,10 @@
+nose2
+
+# exxtras just for dev environment/travis
+coverage
+coveralls
+unittest2
+flake8
+
+-e .
+
