@@ -1,17 +1,32 @@
 
-"""
-hyperkit create myvm
-
-hyperkit create -h vmware --distro ubtuntu myvm
-hyperkit start myvm
-hyperkit stop myvm
-hyperkit
-
-"""
-
 from hyperkit.spec import MachineSpec, PasswordAuth, SSHAuth, Hardware, CanonicalImage, LiteralImage
-from hyperkit.hypervisor import VirtualBox
+from hyperkit.hypervisor import VirtualBox, VMWare
 import argparse
+
+import logging
+
+logger = logging.getLogger()
+
+def guess_hypervisor(args):
+    if args.hypervisor is not None:
+        hypervisor = {
+            "vbox": VirtualBox,
+            "vmware": VMWare,
+            }.get(args.hypervisor, None)
+        if hypervisor is None:
+            print >> sys.stderr, "Specified hypervisor is not valid"
+            raise SystemExit(1)
+        logging.debug("%r hypervisor selected by user" % hypervisor)
+    else:
+        if VirtualBox.present:
+            hypervisor = VirtualBox
+        elif VMWare.present:
+            hypervisor = VMWare
+        else:
+            print >> sys.stderr, "No hypervisor found"
+            raise SystemExit
+        logging.debug("%r hypervisor selected by inspection" % hypervisor)
+    return hypervisor
 
 def make_password_auth(args):
     return PasswordAuth(username=args.username, password=args.password)
@@ -43,10 +58,12 @@ def make_auth(args):
         return make_agent_key_auth(args)
 
 def make_hardware(args):
-    return None
+    return Hardware(memory=args.memory, cpus=args.cpus)
 
 def make_image(args):
-    return None
+    if args.image is not None:
+        return LiteralImage(args.distro, args.release, args.arch, args.image)
+    return CanonicalImage(args.distro, args.release, args.arch)
 
 def make_spec(args):
     auth = make_auth(args)
@@ -55,11 +72,9 @@ def make_spec(args):
     return MachineSpec(args.name, auth=auth, hardware=hardware, image=image)
 
 def create(args):
-    print args
     spec = make_spec(args)
-    #hypervisor = VirtualBox()
-    #vm = hypervisor.create(spec)
-    #vm.start()
+    hypervisor = guess_hypervisor(args)()
+    vm = hypervisor.create(spec)
 
 def start(args):
     pass
@@ -71,8 +86,12 @@ def ip(args):
     pass
 
 def main():
+
+    logging.basicConfig(level=logging.INFO, format="%(message)s")
+
     parser = argparse.ArgumentParser()
     parser.add_argument("-q", "--quiet", default=False, action="store_true", help="produce no output unless there is an error")
+    parser.add_argument("-d", "--debug", default=False, action="store_true", help="produce lots of output")
     parser.add_argument("-H", "--hypervisor", help="The name of the hypervisor layer to use", choices=["vmware", "vbox"])
     sub = parser.add_subparsers()
 
@@ -104,6 +123,11 @@ def main():
     ip_parser.set_defaults(func=ip)
 
     args = parser.parse_args()
+
+    if args.debug:
+        logger.setLevel(logging.DEBUG)
+    if args.quiet:
+        logger.setLevel(logging.ERROR)
     args.func(args)
 
 
