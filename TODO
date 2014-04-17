@@ -1,0 +1,11 @@
+
+ - make the unit tests work again
+ - support ssh keys into cloudinit
+ - support literal keys and ssh-agent keys
+ - support changing usernames on precise
+ - determine which distros and releases and hypervisors we will test with
+ - write integration tests for the above
+ - support folder mapping
+ - vagrantlike behaviour, with folder mapping
+ - 
+
