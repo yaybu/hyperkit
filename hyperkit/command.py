@@ -104,7 +104,7 @@ def create(args):
     logging.info("    hardware: %s" % spec.hardware)
 
     vm = hypervisor.create(spec)
-    logging.info("You can start this machine with: hyperkit start %s" % (vm.instance_id, ))
+    logging.info("You can start this machine with: hyperkit -H %s start %s" % (hypervisor.hypervisor_id, vm.instance_id, ))
 
 
 def start(args):

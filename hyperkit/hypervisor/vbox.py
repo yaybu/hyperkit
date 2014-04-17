@@ -150,6 +150,7 @@ class VBoxFedoraCloudConfig(VBoxCloudConfig):
 
 class VirtualBox(Hypervisor):
 
+    hypervisor_id = "vbox"
     directory = os.path.expanduser("~/VirtualBox VMs")
     instance = VBoxMachineInstance
 

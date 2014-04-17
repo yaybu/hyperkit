@@ -188,8 +188,6 @@ def test_connection():
 
 class VMWareMachineInstance(MachineInstance):
 
-    name = "vmware"
-
     def __init__(self, directory, instance_id):
         super(VMWareMachineInstance, self).__init__(directory, instance_id)
         self.vmx = VMX(self.instance_dir, self.instance_id)
@@ -232,6 +230,7 @@ class VMWareFedoraCloudConfig(VMWareCloudConfig):
 
 class VMWare(Hypervisor):
 
+    hypervisor_id = "vmware"
     directory = os.path.expanduser("~/vmware")
     instance = VMWareMachineInstance
 
