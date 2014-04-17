@@ -1,4 +1,0 @@
-hyperkit
-========
-
-Hypervisor tools
