@@ -1,5 +1,18 @@
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to You under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
-import time
 import sys
 import argparse
 import logging
@@ -12,10 +25,7 @@ logger = logging.getLogger()
 
 def guess_hypervisor(args):
     if args.hypervisor is not None:
-        hypervisor = {
-            "vbox": VirtualBox,
-            "vmware": VMWare,
-            }.get(args.hypervisor, None)
+        hypervisor = {"vbox": VirtualBox, "vmware": VMWare}.get(args.hypervisor, None)
         if hypervisor is None:
             print >> sys.stderr, "Specified hypervisor is not valid"
             raise SystemExit(1)
@@ -31,15 +41,19 @@ def guess_hypervisor(args):
         logging.debug("%r hypervisor selected by inspection" % hypervisor)
     return hypervisor
 
+
 def make_password_auth(args):
     logging.debug("Using password authentication for user %r" % args.username)
     return PasswordAuth(username=args.username, password=args.password)
 
+
 def make_public_key_auth(args):
     raise NotImplementedError()
 
+
 def make_agent_key_auth(args):
     raise NotImplementedError()
+
 
 def make_auth(args):
     scheme = None
@@ -61,8 +75,10 @@ def make_auth(args):
     else:
         return make_agent_key_auth(args)
 
+
 def make_hardware(args):
     return Hardware(memory=args.memory, cpus=args.cpus)
+
 
 def make_image(args):
     if args.image is not None:
@@ -71,11 +87,13 @@ def make_image(args):
     logging.debug("Using a canonical distro image")
     return CanonicalImage(args.distro, args.release, args.arch)
 
+
 def make_spec(args):
     auth = make_auth(args)
     hardware = make_hardware(args)
     image = make_image(args)
     return MachineSpec(args.name, auth=auth, hardware=hardware, image=image)
+
 
 def create(args):
     hypervisor = guess_hypervisor(args)()
@@ -88,6 +106,7 @@ def create(args):
     vm = hypervisor.create(spec)
     logging.info("You can start this machine with: hyperkit start %s" % (vm.instance_id, ))
 
+
 def start(args):
     hypervisor = guess_hypervisor(args)()
     logging.info("Starting %s machine '%s'" % (hypervisor, args.name))
@@ -98,6 +117,7 @@ def start(args):
         logging.info("Waiting for startup to complete...")
         vm.wait(0)
         logging.info("Machine is running")
+
 
 def stop(args):
     hypervisor = guess_hypervisor(args)()
@@ -114,16 +134,19 @@ def destroy(args):
     vm.destroy()
     logging.info("Machine destroyed")
 
+
 def ip(args):
     hypervisor = guess_hypervisor(args)()
     vm = hypervisor.load(args.name)
     print vm.get_ip()
+
 
 def wait(args):
     hypervisor = guess_hypervisor(args)()
     vm = hypervisor.load(args.name)
     vm.wait(0)
     logging.info("Machine is running")
+
 
 def main():
 

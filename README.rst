@@ -17,13 +17,33 @@ distribution, release, architecture with default configuration::
 
 By default it will use VirtualBox to create a recent 64-bit Ubuntu VM.
 
-You can specify the VM details thusly::
+usage: hyperkit create [-h] [--username USERNAME] [--password PASSWORD]
+                       [--public-key PUBLIC_KEY] [--key-id KEY_ID]
+                       [--memory MEMORY] [--cpus CPUS] [--image IMAGE]
+                       [--options OPTIONS]
+                       [name] [distro] [release] [arch]
 
-    hyperkit create [name] [distro] [release] [arch]
+positional arguments:
+  name                  The name of the vm to create
+  distro                The name of the distro to use
+  release               The release of the distro to use
+  arch                  The architecture of the distro to use
 
-e.g.::
+optional arguments:
+  -h, --help            show this help message and exit
+  --username USERNAME   The username of the initial user
+  --password PASSWORD   The password for the initial user
+  --public-key PUBLIC_KEY
+                        A specific public key to be added to the initial
+                        user's authorized list
+  --key-id KEY_ID       The name of a key in your ~/.ssh folder
+  --memory MEMORY       The amount of memory for the new virtual machine
+  --cpus CPUS           The number of cpus for the new virtual machine
+  --image IMAGE         A file path or url to an image to use instead of the
+                        distro's default
+  --options OPTIONS     hypervisor specific options to pass to the new VM
 
-    hyperkit create testvm fedora 20 x86_64
+
 
 Authentication
 ~~~~~~~~~~~~~~
