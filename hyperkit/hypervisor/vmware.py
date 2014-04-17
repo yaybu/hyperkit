@@ -20,7 +20,7 @@ import collections
 
 from hyperkit.cloudinit import CloudConfig, Seed, MetaData
 from .runner import Runner
-from .machine import MachineBuilder, MachineInstance
+from .machine import MachineInstance, Hypervisor
 
 logger = logging.getLogger("vmware")
 
@@ -230,8 +230,9 @@ class VMWareFedoraCloudConfig(VMWareCloudConfig):
     packages = ['file', 'perl']
 
 
-class VMWareMachineBuilder(MachineBuilder):
+class VMWare(Hypervisor):
 
+    directory = os.path.expanduser("~/vmware")
     instance = VMWareMachineInstance
 
     configs = {
@@ -239,9 +240,9 @@ class VMWareMachineBuilder(MachineBuilder):
         "fedora": VMWareFedoraCloudConfig,
     }
 
-    def create(self, spec):
+    def create(self, spec, image_dir="~/.hyperkit"):
 
-        assert isinstance(spec, spec.MachineSpec)
+        image_dir = os.path.expanduser(image_dir)
 
         instance_id = self.get_instance_id(spec)
         instance_dir = os.path.join(self.directory, instance_id)
@@ -254,7 +255,7 @@ class VMWareMachineBuilder(MachineBuilder):
 
         # create the disk image and attach it
         disk = os.path.join(instance_dir, instance_id + "_disk1.vmdk")
-        qemu_img(source=spec.image.fetch(self.image_dir), destination=disk, format="vmdk")
+        qemu_img(source=spec.image.fetch(image_dir), destination=disk, format="vmdk")
         vmx.connect_disk(disk)
 
         # create the seed ISO
@@ -268,4 +269,6 @@ class VMWareMachineBuilder(MachineBuilder):
         vmx.connect_iso(seed.pathname)
         vmx.connect_iso("/usr/lib/vmware/isoimages/linux.iso", "ide0:1", "TRUE")
         vmx.write()
-        return VMWareMachineInstance(self.directory, instance_id)
+        return self.load(instance_id)
+
+__all__ = [VMWare]

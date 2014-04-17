@@ -9,6 +9,12 @@ hyperkit
 
 """
 
+from hyperkit.spec import MachineSpec
+from hyperkit.hypervisor import VirtualBox
+
 
 def main():
-    print "Welcome to hyperkit!"
+    spec = MachineSpec()
+    hypervisor = VirtualBox()
+    vm = hypervisor.create(spec)
+    vm.start()

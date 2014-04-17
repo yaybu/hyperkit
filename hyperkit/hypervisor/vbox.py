@@ -20,7 +20,7 @@ import shutil
 from hyperkit.cloudinit import CloudConfig, Seed, MetaData
 
 from .runner import Runner
-from .machine import MachineBuilder, MachineInstance
+from .machine import MachineInstance, Hypervisor
 
 logger = logging.getLogger("vbox")
 
@@ -85,6 +85,9 @@ class VBoxMachineInstance(MachineInstance):
 
     name = "vbox"
 
+    def __init__(self, directory, instance_id):
+        self.instance_id = instance_id
+
     @property
     def id(self):
         return self.instance_id
@@ -93,8 +96,8 @@ class VBoxMachineInstance(MachineInstance):
         startvm(type="gui", name=self.instance_id)
 
     def _destroy(self):
-        unregistervm(name=self.node)
-        shutil.rmtree(os.path.dirname(self.node))
+        unregistervm(name=self.instance_id)
+        shutil.rmtree(os.path.dirname(self.instance_id))
 
     def get_ip(self):
         s = guestproperty(name=self.instance_id, property="/VirtualBox/GuestInfo/Net/0/V4/IP")
@@ -120,8 +123,9 @@ class VBoxFedoraCloudConfig(VBoxCloudConfig):
     pass
 
 
-class VBoxMachineBuilder(MachineBuilder):
+class VirtualBox(Hypervisor):
 
+    directory = os.path.expanduser("~/VirtualBox VMs")
     instance = VBoxMachineInstance
 
     configs = {
@@ -138,8 +142,6 @@ class VBoxMachineBuilder(MachineBuilder):
     def create(self, spec):
         """ Create a new virtual machine in the specified directory from the base image. """
 
-        assert isinstance(spec, spec.MachineSpec)
-
         instance_id = self.get_instance_id(spec)
         instance_dir = os.path.join(self.directory, instance_id)
         # create the directory to hold all the bits
@@ -148,7 +150,7 @@ class VBoxMachineBuilder(MachineBuilder):
         createvm(name=instance_id,
                  directory=self.directory,
                  ostype=self.ostype[spec.image.distro])
-        configurevm(name=spec.name, memsize=spec.hardware.memory)
+        configurevm(name=instance_id, memsize=spec.hardware.memory)
 
         # create the disk image and attach it
         disk = os.path.join(instance_dir, instance_id + "_disk1.vdi")
@@ -167,4 +169,6 @@ class VBoxMachineBuilder(MachineBuilder):
         create_ide(name=instance_id)
         attach_ide(name=instance_id, port="0", device="0", filename=seed.pathname)
         attach_ide(name=instance_id, port="0", device="1", filename="/usr/share/virtualbox/VBoxGuestAdditions.iso")
-        return VBoxMachineInstance(instance_dir, spec.name)
+        return self.load(instance_id)
+
+__all__ = [VirtualBox]

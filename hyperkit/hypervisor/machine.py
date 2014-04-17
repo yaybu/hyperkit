@@ -50,7 +50,7 @@ class MachineInstance(object):
                 time.sleep(1)
 
 
-class MachineBuilder(object):
+class Hypervisor(object):
 
     """ This builds a new MachineInstance when provided with a source image.
     The create method will return a MachineInstance when provided with a
@@ -58,14 +58,25 @@ class MachineBuilder(object):
 
     __metaclass__ = abc.ABCMeta
 
-    instance = MachineInstance
+    # the directory in which instances live
+    directory = None
 
-    def __init__(self, directory, image_dir, instance_id=None):
-        self.directory = directory
-        self.image_dir = image_dir
+    # the class that represents an instance
+    instance = None
 
-    def create(self, spec):
-        """ Builds the instance """
+    # the directory that contains images
+    image_dir = os.path.expanduser("~/.hyperkit")
+
+    def set_image_dir(self, image_dir):
+        self.image_dir = os.path.expanduser(image_dir)
+
+    @abc.abstractmethod
+    def create(self, spec, image_dir="~/.hyperkit"):
+        """ Builds the instance based on the spec, loading images from image_dir. """
+
+    def load(self, name):
+        if os.path.exists(os.path.join(self.directory, name)):
+            return self.instance(self.directory, name)
 
     def get_instance_id(self, spec):
         today = datetime.datetime.now()
@@ -79,4 +90,9 @@ class MachineBuilder(object):
             count = count + 1
         return instance_id
 
-__all__ = [State, MachineBuilder, MachineInstance]
+    def instances(self):
+        """ Return a generator of instance objects. """
+        for d in os.listdir(self.directory):
+            yield self.instance(self.directory, d)
+
+__all__ = [State, MachineInstance, Hypervisor]

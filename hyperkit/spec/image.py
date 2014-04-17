@@ -27,6 +27,8 @@ class LiteralImage(Image):
         self.url = url
 
     def fetch(self, imagedir):
+        if not os.path.exists(imagedir):
+            os.mkdir(imagedir)
         urihash = hashlib.sha256()
         urihash.update(self.url)
         pathname = os.path.join(imagedir, "user-{0}.qcow2".format(urihash.hexdigest()))
@@ -49,12 +51,30 @@ class CanonicalImage(Image):
     handlers can register themselves with this class to provide fetching
     behaviour. """
 
-    # populated with metaclass magic
+    # populated with metaclass magic from the distro module
     distributions = {}
 
-    def __init__(self, distro, release, arch):
+    default_distro = "ubuntu"
+
+    default_release = {
+        "ubuntu": "13.10",
+        "fedora": "20",
+    }
+
+    default_arch = {
+        "ubuntu": "amd64",
+        "fedora": "x86_64",
+    }
+
+    def __init__(self, distro=None, release=None, arch=None):
+        if distro is None:
+            distro = self.default_distro
         self.distro = distro
+        if release is None:
+            release = self.default_release[distro]
         self.release = release
+        if arch is None:
+            arch = self.default_arch[distro]
         self.arch = arch
 
     def distro_class(self):
@@ -73,6 +93,8 @@ class CanonicalImage(Image):
             arch: the distribution's name for the architecture, i.e. x86_64, amd64
             format: the format of virtual machine image required, i.e. vmdk, qcow
         """
+        if not os.path.exists(image_dir):
+            os.mkdir(image_dir)
         pathname = os.path.join(image_dir, "{0}-{1}-{2}.qcow2".format(self.distro, self.release, self.arch))
         klass = self.distro_class()
         distro = klass(pathname, self.release, self.arch)

@@ -1,5 +1,4 @@
-import machine
-import vbox
-import vmware
+from vmware import VMWare
+from vbox import VirtualBox
 
-__all__ = [machine, vbox, vmware]
+__all__ = [VMWare, VirtualBox]

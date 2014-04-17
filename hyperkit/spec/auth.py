@@ -4,7 +4,7 @@ class Auth(object):
 
 
 class PasswordAuth(Auth):
-    def __init__(self, username, password):
+    def __init__(self, username="hyperkit", password="password"):
         self.username = username
         self.password = password
 
