@@ -18,7 +18,7 @@ import logging
 import random
 import collections
 
-from .cloudinit import CloudConfig, Seed, MetaData
+from hyperkit.cloudinit import CloudConfig, Seed, MetaData
 from .runner import Runner
 from .machine import MachineBuilder, MachineInstance
 

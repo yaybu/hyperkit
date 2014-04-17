@@ -3,7 +3,8 @@ import abc
 import os
 import hashlib
 import urllib2
-from . import error
+
+from hyperkit import error
 
 
 class Image(object):

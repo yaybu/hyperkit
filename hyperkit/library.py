@@ -16,8 +16,8 @@
 import os
 import datetime
 
-from .vmware import VMWareMachineBuilder, VMWareMachineInstance
-from .vbox import VBoxMachineBuilder, VBoxMachineInstance
+from hypervisor.vmware import VMWareMachineBuilder, VMWareMachineInstance
+from hypervisor.vbox import VBoxMachineBuilder, VBoxMachineInstance
 from .error import SystemNotKnown
 
 

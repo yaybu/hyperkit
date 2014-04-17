@@ -17,7 +17,8 @@ import os
 import logging
 import shutil
 
-from .cloudinit import CloudConfig, Seed, MetaData
+from hyperkit.cloudinit import CloudConfig, Seed, MetaData
+
 from .runner import Runner
 from .machine import MachineBuilder, MachineInstance
 

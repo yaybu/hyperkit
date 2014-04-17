@@ -1,6 +1,6 @@
 
-import vmware
-import vbox
-import ubuntu
-import fedora
-import cirros
+import hypervisor
+import distro
+import library
+
+__all__ = [hypervisor, distro, library]

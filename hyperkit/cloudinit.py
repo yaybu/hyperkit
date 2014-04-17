@@ -21,7 +21,7 @@ import yaml
 import random
 import crypt
 
-from .runner import Runner
+from hypervisor.runner import Runner
 
 logger = logging.getLogger("cloudinit")
 

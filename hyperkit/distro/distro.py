@@ -4,10 +4,10 @@ import os
 import urllib2
 import logging
 
-from .image import CanonicalImage
-from .error import FetchFailedException
+from hyperkit.spec.image import CanonicalImage
+from hyperkit.error import FetchFailedException
 
-logger = logging.logger(__name__)
+logger = logging.getLogger(__name__)
 
 
 class DistroImageType(abc.ABCMeta):
