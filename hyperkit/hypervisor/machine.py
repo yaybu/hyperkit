@@ -19,6 +19,8 @@ class MachineInstance(object):
 
     system = None
 
+    timeout = 30
+
     def __init__(self, directory, instance_id):
         self.instance_dir = os.path.join(directory, instance_id)
         self.instance_id = instance_id
@@ -27,6 +29,10 @@ class MachineInstance(object):
     def start(self):
         self._start()
         self.state = State.STARTING
+
+    def stop(self, force=False):
+        self._stop(force=force)
+        self.state = State.DEAD
 
     def destroy(self):
         self._destroy()
@@ -41,13 +47,20 @@ class MachineInstance(object):
                 self.start()
                 return
 
-    def wait(self):
-        for i in range(self.wait_delay):
-            if self.public_ip:
+    def wait(self, timeout=None):
+        """ Call with a timeout of 0 to wait forever. """
+        if timeout is None:
+            timeout = self.timeout
+        started = time.time()
+        while True:
+            if self.get_ip():
                 self.state = State.RUNNING
-                return
+                return True
             else:
                 time.sleep(1)
+            if timeout > 0:
+                if time.time() - started > timeout:
+                    return False
 
 
 class Hypervisor(object):

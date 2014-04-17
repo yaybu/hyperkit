@@ -64,16 +64,16 @@ class Runner(object):
                              stderr=subprocess.PIPE,
                              cwd=cwd)
         if self.log_execution:
-            logging.info("Executing: {0}".format(" ".join(command)))
+            logging.debug("Executing: {0}".format(" ".join(command)))
         stdout, stderr = p.communicate()
         if (self.log_stdout and stdout) or (self.log_stderr and stderr):
-            logging.info("Output from {0}".format(" ".join(command)))
+            logging.debug("Output from {0}".format(" ".join(command)))
         if self.log_stdout and stdout:
             for line in stdout.splitlines():
-                logging.info("STDOUT: {0}".format(line))
+                logging.debug("STDOUT: {0}".format(line))
         if self.log_stderr and stderr:
             for line in stderr.splitlines():
-                logging.info("STDERR: {0}".format(line))
+                logging.debug("STDERR: {0}".format(line))
         if p.returncode != 0:
             raise RunnerException("Command execution of {0} failed with error code {1} and error output: {2}".format(" ".join(command), p.returncode, stderr))
         return self.parse(stdout, stderr)

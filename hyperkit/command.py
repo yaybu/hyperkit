@@ -1,11 +1,14 @@
 
-from hyperkit.spec import MachineSpec, PasswordAuth, SSHAuth, Hardware, CanonicalImage, LiteralImage
-from hyperkit.hypervisor import VirtualBox, VMWare
+import time
+import sys
 import argparse
-
 import logging
 
+from hyperkit.spec import MachineSpec, PasswordAuth, SSHAuth, Hardware, CanonicalImage, LiteralImage
+from hyperkit.hypervisor import VirtualBox, VMWare
+
 logger = logging.getLogger()
+
 
 def guess_hypervisor(args):
     if args.hypervisor is not None:
@@ -29,6 +32,7 @@ def guess_hypervisor(args):
     return hypervisor
 
 def make_password_auth(args):
+    logging.debug("Using password authentication for user %r" % args.username)
     return PasswordAuth(username=args.username, password=args.password)
 
 def make_public_key_auth(args):
@@ -62,7 +66,9 @@ def make_hardware(args):
 
 def make_image(args):
     if args.image is not None:
+        logging.debug("Using a literal image at %r" % args.image)
         return LiteralImage(args.distro, args.release, args.arch, args.image)
+    logging.debug("Using a canonical distro image")
     return CanonicalImage(args.distro, args.release, args.arch)
 
 def make_spec(args):
@@ -72,22 +78,56 @@ def make_spec(args):
     return MachineSpec(args.name, auth=auth, hardware=hardware, image=image)
 
 def create(args):
-    spec = make_spec(args)
     hypervisor = guess_hypervisor(args)()
+    spec = make_spec(args)
+    logging.info("Creating a new %s machine '%s' with:" % (hypervisor, spec.name))
+    logging.info("    authentication: %s" % (spec.auth, ))
+    logging.info("    base image: %s" % spec.image)
+    logging.info("    hardware: %s" % spec.hardware)
+
     vm = hypervisor.create(spec)
+    logging.info("You can start this machine with: hyperkit start %s" % (vm.instance_id, ))
 
 def start(args):
-    pass
+    hypervisor = guess_hypervisor(args)()
+    logging.info("Starting %s machine '%s'" % (hypervisor, args.name))
+    vm = hypervisor.load(args.name)
+    vm.start()
+    logging.info("Machine starting.")
+    if args.wait:
+        logging.info("Waiting for startup to complete...")
+        vm.wait(0)
+        logging.info("Machine is running")
+
+def stop(args):
+    hypervisor = guess_hypervisor(args)()
+    logging.info("Stopping %s machine '%s'" % (hypervisor, args.name))
+    vm = hypervisor.load(args.name)
+    vm.stop(force=args.force)
+    logging.info("Machine stopping")
+
 
 def destroy(args):
-    pass
+    hypervisor = guess_hypervisor(args)()
+    logging.info("Destroying %s machine '%s'" % (hypervisor, args.name))
+    vm = hypervisor.load(args.name)
+    vm.destroy()
+    logging.info("Machine destroyed")
 
 def ip(args):
-    pass
+    hypervisor = guess_hypervisor(args)()
+    vm = hypervisor.load(args.name)
+    print vm.get_ip()
+
+def wait(args):
+    hypervisor = guess_hypervisor(args)()
+    vm = hypervisor.load(args.name)
+    vm.wait(0)
+    logging.info("Machine is running")
 
 def main():
 
-    logging.basicConfig(level=logging.INFO, format="%(message)s")
+    logging.basicConfig(level=logging.INFO, format="hyperkit: %(message)s")
 
     parser = argparse.ArgumentParser()
     parser.add_argument("-q", "--quiet", default=False, action="store_true", help="produce no output unless there is an error")
@@ -104,7 +144,7 @@ def main():
     create_parser.add_argument("--password", default=None, help="The password for the initial user")
     create_parser.add_argument("--public-key", default=None, help="A specific public key to be added to the initial user's authorized list")
     create_parser.add_argument("--key-id", default=None, help="The name of a key in your ~/.ssh folder")
-    create_parser.add_argument("--memory", default="128", help="The amount of memory for the new virtual machine")
+    create_parser.add_argument("--memory", default="256", help="The amount of memory for the new virtual machine")
     create_parser.add_argument("--cpus", default="1", help="The number of cpus for the new virtual machine")
     create_parser.add_argument("--image", help="A file path or url to an image to use instead of the distro's default")
     create_parser.add_argument("--options", help="hypervisor specific options to pass to the new VM")
@@ -112,7 +152,13 @@ def main():
 
     start_parser = sub.add_parser("start", help="Start a named virtual machine")
     start_parser.add_argument("name", help="The name of the virtual machine as passed to create")
+    start_parser.add_argument("--wait", action="store_true", default=False, help="Wait for the machine to start before returning")
     start_parser.set_defaults(func=start)
+
+    stop_parser = sub.add_parser("stop", help="Stop a named virtual machine")
+    stop_parser.add_argument("name", help="The name of the virtual machine as passed to create")
+    stop_parser.add_argument("--force", action="store_true", default=False, help="Force a power off")
+    stop_parser.set_defaults(func=stop)
 
     destroy_parser = sub.add_parser("destroy", help="Destroy a named virtual machine")
     destroy_parser.add_argument("name", help="The name of the virtual machine as passed to create")
@@ -122,6 +168,10 @@ def main():
     ip_parser.add_argument("name", help="The name of the virtual machine as passed to create")
     ip_parser.set_defaults(func=ip)
 
+    wait_parser = sub.add_parser("wait", help="Wait until the virtual machine starts")
+    wait_parser.add_argument("name", help="The name of the virtual machine as passed to create")
+    wait_parser.set_defaults(func=wait)
+
     args = parser.parse_args()
 
     if args.debug:
@@ -129,6 +179,3 @@ def main():
     if args.quiet:
         logger.setLevel(logging.ERROR)
     args.func(args)
-
-
-

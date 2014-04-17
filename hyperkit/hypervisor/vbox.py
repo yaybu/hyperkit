@@ -71,6 +71,8 @@ startvm = vboxmanage("startvm",
                      "--type", "{type}",
                      "{name}")
 
+controlvm = vboxmanage("controlvm", "{name}", "{button}")
+
 unregistervm = vboxmanage("unregistervm",
                           "{name}", "--delete")
 
@@ -85,7 +87,11 @@ class VBoxMachineInstance(MachineInstance):
 
     name = "vbox"
 
+    # takes a long time to start the tools
+    timeout = 300
+
     def __init__(self, directory, instance_id):
+        self.directory = directory
         self.instance_id = instance_id
 
     @property
@@ -95,9 +101,13 @@ class VBoxMachineInstance(MachineInstance):
     def _start(self):
         startvm(type="gui", name=self.instance_id)
 
+    def _stop(self, force=False):
+        button = {False: "acpipowerbutton", True: "poweroff"}.get(force)
+        controlvm(name=self.instance_id, button=button)
+
     def _destroy(self):
         unregistervm(name=self.instance_id)
-        shutil.rmtree(os.path.dirname(self.instance_id))
+        shutil.rmtree(os.path.join(self.directory, self.instance_id))
 
     def get_ip(self):
         s = guestproperty(name=self.instance_id, property="/VirtualBox/GuestInfo/Net/0/V4/IP")
@@ -139,6 +149,9 @@ class VirtualBox(Hypervisor):
         None: "Linux_64",
     }
 
+    def __str__(self):
+        return "VirtualBox"
+
     @property
     def present(self):
         return createvm.pathname is not None
@@ -149,13 +162,16 @@ class VirtualBox(Hypervisor):
         instance_id = self.get_instance_id(spec)
         instance_dir = os.path.join(self.directory, instance_id)
         # create the directory to hold all the bits
+        logger.info("Creating directory %s" % (instance_dir, ))
         os.mkdir(instance_dir)
 
+        logger.info("Creating virtual machine")
         createvm(name=instance_id,
                  directory=self.directory,
                  ostype=self.ostype[spec.image.distro])
         configurevm(name=instance_id, memsize=spec.hardware.memory)
 
+        logger.info("Creating disk image from %s" % (spec.image, ))
         # create the disk image and attach it
         disk = os.path.join(instance_dir, instance_id + "_disk1.vdi")
         qemu_img(source=spec.image.fetch(self.image_dir), destination=disk, format="vdi")
@@ -163,16 +179,19 @@ class VirtualBox(Hypervisor):
         attach_disk(name=instance_id, disk=disk)
 
         # create the seed ISO
+        logger.info("Creating cloudinit seed")
         config_class = self.configs[spec.image.distro]
         cloud_config = config_class(spec.auth)
         meta_data = MetaData(spec.name)
         seed = Seed(instance_dir, cloud_config=cloud_config, meta_data=meta_data)
         seed.write()
 
+        logger.info("Attaching devices")
         # connect the seed ISO and the tools ISO
         create_ide(name=instance_id)
         attach_ide(name=instance_id, port="0", device="0", filename=seed.pathname)
         attach_ide(name=instance_id, port="0", device="1", filename="/usr/share/virtualbox/VBoxGuestAdditions.iso")
+        logger.info("Machine created")
         return self.load(instance_id)
 
 __all__ = [VirtualBox]

@@ -97,7 +97,8 @@ class DistroImage(object):
     def get_remote_hashes(self):
         """ Fetch the remote hash file and return the decoded hashes. """
         remote_url = self.remote_hashfile_url()
-        logger.info("Fetching hashes from {0}".format(remote_url))
+        logger.info("Checking remote hashes")
+        logger.debug("Fetching {0}".format(remote_url))
         try:
             response = urllib2.urlopen(remote_url)
         except urllib2.HTTPError:
@@ -127,7 +128,6 @@ class DistroImage(object):
             logger.info("Local image does not match remote sum, fetching")
             return True
         else:
-            logger.info("Sums match for local image, not updating")
             return False
 
     def update(self):

@@ -244,25 +244,32 @@ class VMWare(Hypervisor):
     def present(self):
         return startvm.pathname is not None
 
+    def __str__(self):
+        return "VMWare"
+
     def create(self, spec, image_dir="~/.hyperkit"):
 
         image_dir = os.path.expanduser(image_dir)
-
         instance_id = self.get_instance_id(spec)
         instance_dir = os.path.join(self.directory, instance_id)
+
         # create the directory to hold all the bits
+        logger.info("Creating directory %s" % (instance_dir, ))
         os.mkdir(instance_dir)
 
         # create a vanilla vmx file
+        logger.info("Creating VMX file")
         vmx = VMX(instance_dir, instance_id)
         vmx.configure_core(guestos=spec.image.distro)
 
         # create the disk image and attach it
         disk = os.path.join(instance_dir, instance_id + "_disk1.vmdk")
+        logger.info("Creating disk image from %s" % (spec.image, ))
         qemu_img(source=spec.image.fetch(image_dir), destination=disk, format="vmdk")
         vmx.connect_disk(disk)
 
         # create the seed ISO
+        logger.info("Creating CloudInfo Seed")
         config_class = self.configs[spec.image.distro]
         cloud_config = config_class(spec.auth)
         meta_data = MetaData(spec.name)
@@ -270,9 +277,11 @@ class VMWare(Hypervisor):
         seed.write()
 
         # connect the seed ISO and the tools ISO
+        logger.info("Connecting devices")
         vmx.connect_iso(seed.pathname)
         vmx.connect_iso("/usr/lib/vmware/isoimages/linux.iso", "ide0:1", "TRUE")
         vmx.write()
+        logger.info("Machine created")
         return self.load(instance_id)
 
 __all__ = [VMWare]

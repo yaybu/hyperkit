@@ -71,8 +71,6 @@ class CloudConfig:
         return self.encrypt(self.password)
 
     def set_password_auth(self, config):
-        if self.username != "ubuntu":
-            logging.warn("A username other than 'ubuntu' is not supported on earlier versions of ubuntu")
         default_user = {
             "name": self.username,
             "passwd": self.hashed_password,

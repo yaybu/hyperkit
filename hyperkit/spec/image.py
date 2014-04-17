@@ -26,6 +26,9 @@ class LiteralImage(Image):
         self.arch = arch
         self.url = url
 
+    def __str__(self):
+        return "%s-%s-%s at %s" % (self.distro, self.release, self.arch, self.url)
+
     def fetch(self, imagedir):
         if not os.path.exists(imagedir):
             os.mkdir(imagedir)
@@ -76,6 +79,9 @@ class CanonicalImage(Image):
         if arch is None:
             arch = self.default_arch[distro]
         self.arch = arch
+
+    def __str__(self):
+        return "official %s-%s-%s" % (self.distro, self.release, self.arch)
 
     def distro_class(self):
         c = self.distributions.get(self.distro, None)
