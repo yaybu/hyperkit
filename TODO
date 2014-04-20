@@ -1,4 +1,5 @@
 
+ - implement the vmware -T sniffery again
  - make the unit tests work again
  - support ssh keys into cloudinit
  - support literal keys and ssh-agent keys

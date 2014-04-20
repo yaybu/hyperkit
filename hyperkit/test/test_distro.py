@@ -4,11 +4,11 @@ import unittest2
 
 import urllib2
 
-from yaybu.compute.image import base
-from yaybu.compute.image import error
+from hyperkit.distro import distro
+from hyperkit import error
 
 
-class MockCloudImage(base.CloudImage):
+class MockDistroImage(distro.DistroImage):
 
     def hash_function(self):
         return str
@@ -23,10 +23,10 @@ class MockCloudImage(base.CloudImage):
         return hashes
 
 
-class TestCloudImage(unittest2.TestCase):
+class TestDistroImage(unittest2.TestCase):
 
     def setUp(self):
-        self.cloud_image = MockCloudImage("pathname", "release", "arch")
+        self.cloud_image = MockDistroImage("pathname", "release", "arch")
 
     @mock.patch('urllib2.urlopen')
     @mock.patch('__builtin__.open')

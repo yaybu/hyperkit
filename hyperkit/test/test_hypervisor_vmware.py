@@ -2,8 +2,7 @@
 import unittest2
 import mock
 
-from yaybu.compute.image import vmware
-
+from hyperkit.hypervisor import vmware
 
 class TestVMX(unittest2.TestCase):
 
