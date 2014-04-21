@@ -61,6 +61,31 @@ class LiteralImage(Image):
             local.write(data)
         return pathname
 
+class DistroImageType(abc.ABCMeta):
+
+    """ Registers the distro image with the canonical image fetcher """
+
+    def __new__(meta, class_name, bases, new_attrs):
+        cls = type.__new__(meta, class_name, bases, new_attrs)
+        if cls.name is not None:
+            CanonicalImage.distributions[cls.name] = cls
+        return cls
+
+class BaseDistroImage(object):
+
+    __metaclass__ = DistroImageType
+
+    name = None
+
+    @abc.abstractmethod
+    def __init__(self, pathname, release, arch):
+        pass
+
+    @abc.abstractmethod
+    def update(self):
+        """ Update the path represented by pathname with a qcow2 image of the
+        distro for the specified release and architecture. """
+
 
 class CanonicalImage(Image):
 
@@ -74,7 +99,7 @@ class CanonicalImage(Image):
     default_distro = "ubuntu"
 
     default_release = {
-        "ubuntu": "13.10",
+        "ubuntu": "14.04",
         "fedora": "20",
     }
 
@@ -122,3 +147,4 @@ class CanonicalImage(Image):
         return pathname
 
 __all__ = [LiteralImage, CanonicalImage]
+

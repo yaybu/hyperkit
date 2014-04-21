@@ -18,37 +18,18 @@ import os
 import urllib2
 import logging
 
-from hyperkit.spec.image import CanonicalImage
+from hyperkit.spec import image
 from hyperkit.error import FetchFailedException
 
 logger = logging.getLogger(__name__)
 
 
-class DistroImageType(abc.ABCMeta):
-
-    """ Registers the distro image with the canonical image fetcher """
-
-    def __new__(meta, class_name, bases, new_attrs):
-        cls = type.__new__(meta, class_name, bases, new_attrs)
-        if cls.name is not None:
-            CanonicalImage.distributions[cls.name] = cls
-        return cls
-
-
-class DistroImage(object):
+class DistroImage(image.BaseDistroImage):
 
     """ Represents a cloud image file for a specified release and
     architecture, with a local copy of the image, which is only downloaded if
     required. If no image exists locally it is fetched from the source
-    provided by the distribution.
-
-    This is an Abstract Base Class. Concrete implementations need to provide
-    some information about the image locations and hash file format. """
-
-    __metaclass__ = DistroImageType
-
-    # overridden in concrete implementations
-    name = None
+    provided by the distribution. """
 
     # size of blocks fetched from remote resources
     blocksize = 81920

@@ -5,6 +5,7 @@ import urllib2
 
 from hyperkit.spec import spec, auth, hardware, image
 from hyperkit import error
+from hyperkit.distro import ubuntu, fedora
 
 class TestSpec(unittest2.TestCase):
 
@@ -38,3 +39,32 @@ class TestLiteralImage(unittest2.TestCase):
         self.assertRaises(error.FetchFailedException, self.i.fetch, "/does_not_exist")
         self.assertEqual(m_mkdir.call_args_list, [mock.call("/does_not_exist")])
 
+class TestCanonicalImage(unittest2.TestCase):
+
+    def setUp(self):
+        self.m_image = mock.MagicMock()
+        image.CanonicalImage.distributions["mock"] = self.m_image
+        self.ui = image.CanonicalImage()
+        self.fi = image.CanonicalImage("fedora")
+        self.mi = image.CanonicalImage("mock", "release", "arch")
+
+    def test_init_(self):
+        self.assertEqual(self.ui.distro, "ubuntu")
+        self.assertEqual(self.ui.release, "14.04")
+        self.assertEqual(self.ui.arch, "amd64")
+        self.assertEqual(self.fi.distro, "fedora")
+        self.assertEqual(self.fi.release, "20")
+        self.assertEqual(self.fi.arch, "x86_64")
+
+    def test_str(self):
+        self.assertEqual(str(self.ui), "official ubuntu-14.04-amd64")
+
+    def test_distro_class(self):
+        self.assertEqual(self.ui.distro_class(), ubuntu.UbuntuCloudImage)
+        self.assertEqual(self.fi.distro_class(), fedora.FedoraCloudImage)
+
+    @mock.patch("os.path.exists")
+    @mock.patch("os.mkdir")
+    def test_fetch(self, m_mkdir, m_exists):
+        m_exists.return_value = True
+        self.mi.fetch("/does_not_exist")
