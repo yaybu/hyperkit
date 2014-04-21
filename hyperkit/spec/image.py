@@ -48,7 +48,7 @@ class LiteralImage(Image):
             os.mkdir(imagedir)
         urihash = hashlib.sha256()
         urihash.update(self.url)
-        pathname = os.path.join(imagedir, "user-{0}.qcow2".format(urihash.hexdigest()))
+        pathname = os.path.join(imagedir, "user-{0}-{1}-{2}.{3}.qcow2".format(self.distro, self.release, self.arch, urihash.hexdigest()))
         try:
             response = urllib2.urlopen(self.url)
         except urllib2.HTTPError:
