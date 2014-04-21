@@ -39,6 +39,22 @@ class MachineInstance(object):
         self.instance_id = instance_id
         self.state = State.DEAD
 
+    @abc.abstractmethod
+    def _start(self):
+        """ Start the machine """
+
+    @abc.abstractmethod
+    def _stop(self, force=False):
+        """ Stop the machine """
+
+    @abc.abstractmethod
+    def _destroy(self):
+        """ Completely destroy the machine """
+
+    @abc.abstractmethod
+    def get_ip(self):
+        """ Return the ip address of the machine, or None if it is not yet running """
+
     def start(self):
         self._start()
         self.state = State.STARTING
@@ -51,15 +67,6 @@ class MachineInstance(object):
         self._destroy()
         self.state = State.DEAD
 
-    def load(self, name):
-        if self.state != State.DEAD:
-            raise ValueError("Trying to start a node when we already have one")
-        for vm in self.machines.instances("vbox"):
-            if vm.name == name:
-                self.node = vm
-                self.start()
-                return
-
     def wait(self, timeout=None):
         """ Call with a timeout of 0 to wait forever. """
         if timeout is None:
@@ -71,7 +78,7 @@ class MachineInstance(object):
                 return True
             else:
                 time.sleep(1)
-            if timeout > 0:
+            if timeout != 0:
                 if time.time() - started > timeout:
                     return False
 
