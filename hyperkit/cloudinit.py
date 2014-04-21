@@ -136,18 +136,6 @@ class Seed:
         self.tmpdir = tempfile.mkdtemp()
 
     @property
-    def username(self):
-        return self.cloud_config.username
-
-    @property
-    def password(self):
-        return self.cloud_config.password
-
-    @property
-    def hashed_password(self):
-        return self.cloud_config.hashed_password
-
-    @property
     def pathname(self):
         return os.path.join(self.directory, self.seed_file_name)
 
