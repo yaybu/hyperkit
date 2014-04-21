@@ -43,7 +43,7 @@ class CloudConfig:
         "runcmd",
     ]
 
-    def __init__(self, auth, **kwargs):
+    def __init__(self, auth):
         self.auth = auth
 
     def get_config(self):
@@ -51,9 +51,8 @@ class CloudConfig:
         for t in self.terms:
             if hasattr(self, t):
                 config[t] = getattr(self, t)
-        if hasattr(self, 'auth'):
-            if self.username and self.password:
-                self.set_password_auth(config)
+        if self.username and self.password:
+            self.set_password_auth(config)
         return config
 
     @property
