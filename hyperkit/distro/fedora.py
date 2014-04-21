@@ -17,6 +17,8 @@ import hashlib
 
 from .distro import StandardDistroImage
 
+class FedoraDistroError(Exception):
+    pass
 
 class FedoraCloudImage(StandardDistroImage):
 
@@ -30,6 +32,7 @@ class FedoraCloudImage(StandardDistroImage):
     prefix = "Fedora-{arch}-{release}"
     qcow = "Fedora-{arch}-{release}-{version}-sda.qcow2"
     hash_function = hashlib.sha256
+    version = None
 
     def update_hashes(self):
         if self.remote_hash is None:
@@ -50,6 +53,8 @@ class FedoraCloudImage(StandardDistroImage):
 
     def remote_image_url(self):
         # version is set as part of the hash retrieval phase
+        if self.version is None:
+            raise FedoraDistroError("No version identified before retrieval")
         url = self.source + "/" + self.qcow
         return url.format(server=self.server, release=self.release, arch=self.arch, version=self.version)
 
