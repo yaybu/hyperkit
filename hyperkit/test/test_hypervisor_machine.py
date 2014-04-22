@@ -8,8 +8,9 @@ class MockMachineInstance(machine.MachineInstance):
 
     ip = None
 
-    def _start(self):
+    def _start(self, gui=False):
         self.started = True
+        self.started_gui = gui
 
     def _stop(self, force=False):
         self.stopped = True
@@ -26,8 +27,9 @@ class TestMachineInstance(unittest2.TestCase):
         self.m = MockMachineInstance("/tmp", "foo")
 
     def test_start(self):
-        self.m.start()
+        self.m.start(False)
         self.assertEqual(self.m.started, True)
+        self.assertEqual(self.m.started_gui, False)
         self.assertEqual(self.m.state, machine.State.STARTING)
 
     def test_stop(self):
