@@ -40,7 +40,7 @@ class MachineInstance(object):
         self.state = State.DEAD
 
     @abc.abstractmethod
-    def _start(self):
+    def _start(self, gui=False):
         """ Start the machine """
 
     @abc.abstractmethod
@@ -55,8 +55,8 @@ class MachineInstance(object):
     def get_ip(self):
         """ Return the ip address of the machine, or None if it is not yet running """
 
-    def start(self):
-        self._start()
+    def start(self, gui=False):
+        self._start(gui)
         self.state = State.STARTING
 
     def stop(self, force=False):

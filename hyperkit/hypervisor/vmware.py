@@ -34,7 +34,7 @@ qemu_img = Runner(
     log_execution=True,
 )
 
-startvm = vmrun("start", "{name}", "gui")
+startvm = vmrun("start", "{name}", "{type}")
 stopvm = vmrun("stop", "{name}", "hard")
 deletevm = vmrun("deleteVM", "{name}")
 readVariable = vmrun("readVariable", "{name}", "guestVar", "{variable}")
@@ -111,7 +111,7 @@ class VMX(collections.defaultdict):
         for l in open(self.pathname):
             l = l.strip()
             if l and not l.startswith("#"):
-                name, value = l.strip().split("=", 1)
+                name, value = [x.strip() for x in l.strip().split("=", 1)]
                 value = self.parse_value(value)
                 parts = name.split(".", 1)
                 if len(parts) == 1:
@@ -182,18 +182,18 @@ class VMX(collections.defaultdict):
         }
 
 
-def test_connection():
-    return startvm.pathname is not None
-
-
 class VMWareMachineInstance(MachineInstance):
 
     def __init__(self, directory, instance_id):
         super(VMWareMachineInstance, self).__init__(directory, instance_id)
         self.vmx = VMX(self.instance_dir, self.instance_id)
 
-    def _start(self):
-        startvm(name=self.vmx.pathname)
+    def _start(self, gui=False):
+        s_type = {
+            True: "gui",
+            False: "nogui",
+            }[gui]
+        startvm(name=self.vmx.pathname, type=s_type)
 
     def _destroy(self):
         stopvm(name=self.vmx.pathname)

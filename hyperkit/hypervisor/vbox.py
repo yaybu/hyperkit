@@ -93,11 +93,6 @@ unregistervm = vboxmanage("unregistervm",
 
 guestproperty = vboxmanage("guestproperty", "get", "{name}", "{property}")
 
-
-def test_connection():
-    return startvm.pathname is not None
-
-
 class VBoxMachineInstance(MachineInstance):
 
     name = "vbox"
@@ -113,8 +108,12 @@ class VBoxMachineInstance(MachineInstance):
     def id(self):
         return self.instance_id
 
-    def _start(self):
-        startvm(type="gui", name=self.instance_id)
+    def _start(self, gui=False):
+        s_type = {
+            True: "gui",
+            False: "headless",
+            }[gui]
+        startvm(type=s_type, name=self.instance_id)
 
     def _stop(self, force=False):
         button = {False: "acpipowerbutton", True: "poweroff"}.get(force)
