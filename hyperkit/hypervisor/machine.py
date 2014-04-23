@@ -105,7 +105,16 @@ class Hypervisor(object):
 
     @abc.abstractmethod
     def create(self, spec, image_dir="~/.hyperkit"):
-        """ Builds the instance based on the spec, loading images from image_dir. """
+        """ Builds the instance based on the spec, loading images from
+        image_dir. Return the instance, for example with self.load(name) """
+
+    @abc.abstractmethod
+    def __str__(self):
+        """ The name of the hypervisor, used in some messages """
+
+    @abc.abstractproperty
+    def present(self):
+        """ Return True if the hypervisor is present on this host """
 
     def load(self, name):
         if os.path.exists(os.path.join(self.directory, name)):

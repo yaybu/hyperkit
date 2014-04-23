@@ -1,9 +1,11 @@
 
 import unittest2
 import mock
+import datetime
 
 from hyperkit.hypervisor import machine
 
+fixed_date = datetime.datetime(2001, 1, 1)
 
 class MockMachineInstance(machine.MachineInstance):
 
@@ -65,3 +67,65 @@ class TestMachineInstance(unittest2.TestCase):
         m_time.side_effect = time
         self.m.wait(10)
         self.assertEqual(self.t, 6)
+
+class MockHypervisor(machine.Hypervisor):
+
+    instance = mock.MagicMock()
+    directory = "/fake_dir"
+
+    def create(self, spec, image_dir="~/.hyperkit"):
+        return mock.MagicMock()
+
+    def __str__(self):
+        return "Mock Hypervisor"
+
+    def present(self):
+        return True
+
+class TestHypervisor(unittest2.TestCase):
+
+    def setUp(self):
+        self.hypervisor = MockHypervisor()
+
+    @mock.patch("os.path.expanduser")
+    def test_set_image_dir(self, m_expanduser):
+        m_expanduser.side_effect = lambda x: x.replace("~", "/bar")
+        self.hypervisor.set_image_dir("~/foo")
+        self.assertEqual(self.hypervisor.image_dir, "/bar/foo")
+
+    @mock.patch("os.path.exists")
+    def test_load(self, m_exists):
+        m_exists = True
+        instance = self.hypervisor.load("foo")
+        self.assertEqual(instance, self.hypervisor.instance("/fake_dir/foo"))
+
+    @mock.patch("os.path.exists")
+    @mock.patch("datetime.datetime")
+    def test_get_instance_id_new(self, m_datetime, m_exists):
+        m_exists.return_value = False
+        m_datetime.now.return_value = fixed_date
+        spec = mock.MagicMock()
+        spec.name = "foo"
+        self.assertEqual(self.hypervisor.get_instance_id(spec), "foo-2001-01-01")
+
+    @mock.patch("os.path.exists")
+    @mock.patch("datetime.datetime")
+    def test_get_instance_id_exists(self, m_datetime, m_exists):
+        m_exists.side_effect = [True, True, True, False]
+        m_datetime.now.return_value = fixed_date
+        spec = mock.MagicMock()
+        spec.name = "foo"
+        self.assertEqual(self.hypervisor.get_instance_id(spec), "foo-2001-01-01-03")
+
+    @mock.patch("os.listdir")
+    def test_instances(self, m_listdir):
+        m_listdir.return_value = ['foo', 'bar', 'baz']
+        self.assertEqual(list(self.hypervisor.instances()), [
+            self.hypervisor.instance("/fake_dir/foo"),
+            self.hypervisor.instance("/fake_dir/bar"),
+            self.hypervisor.instance("/fake_dir/baz"),
+        ])
+
+
+
+
