@@ -5,7 +5,6 @@ from hyperkit.hypervisor.command import Command
 
 from hyperkit.hypervisor import vbox
 
-Command.known_locations = ["/fake_bin"]
 
 
 class TestVBoxCommandIntegration(unittest2.TestCase):
@@ -14,7 +13,11 @@ class TestVBoxCommandIntegration(unittest2.TestCase):
     right subprocess calls using command.Command. """
 
     def setUp(self):
+        Command.known_locations = ["/fake_bin"]
         self.m = vbox.VBoxMachineInstance("/does_not_exist", "foo")
+
+    def tearDown(self):
+        Command.known_locations = ()
 
     def assert_popen(self, m_popen, args):
         self.assertEqual(m_popen.call_args,

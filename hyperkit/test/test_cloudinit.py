@@ -82,10 +82,14 @@ class TestSeed(unittest2.TestCase):
     @mock.patch("__builtin__.open")
     @mock.patch("os.unlink")
     @mock.patch("os.rmdir")
-    def test_write(self, m_rmdir, m_unlink, m_open, m_popen):
+    @mock.patch("os.path.isfile")
+    @mock.patch("os.access")
+    def test_write(self, m_access, m_isfile, m_rmdir, m_unlink, m_open, m_popen):
+        m_access.return_value = m_isfile.return_value = True
         m_popen().communicate.return_value = ["", ""]
         m_popen().returncode = 0
-        self.seed.write()
+        with mock.patch.dict("os.environ", {"PATH": "/usr/bin"}):
+            self.seed.write()
         self.assertEqual(m_open.call_args_list, [mock.call("/tmpdir/user-data", "w"), mock.call("/tmpdir/meta-data", "w")])
         self.assertEqual(m_unlink.call_args_list, [mock.call("/tmpdir/user-data"), mock.call("/tmpdir/meta-data")])
         self.assertEqual(m_rmdir.call_args, mock.call("/tmpdir"))
