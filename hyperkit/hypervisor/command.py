@@ -34,7 +34,8 @@ class Command(object):
 
     @property
     def pathname(self):
-        for loc in itertools.chain(self.known_locations, os.environ['PATH'].split(":")):
+        candidates =  itertools.chain(self.known_locations, os.environ['PATH'].split(":"))
+        for loc in candidates:
             pathname = os.path.join(loc, self.command_name)
             if os.path.isfile(pathname) and os.access(pathname, os.X_OK):
                 return pathname
@@ -57,16 +58,16 @@ class Command(object):
                              stderr=subprocess.PIPE,
                              cwd=cwd)
         if self.log_execution:
-            logging.debug("Executing: {0}".format(" ".join(command)))
+            logger.debug("Executing: {0}".format(" ".join(command)))
         stdout, stderr = p.communicate()
         if (self.log_stdout and stdout) or (self.log_stderr and stderr):
-            logging.debug("Output from {0}".format(" ".join(command)))
+            logger.debug("Output from {0}".format(" ".join(command)))
         if self.log_stdout and stdout:
             for line in stdout.splitlines():
-                logging.debug("STDOUT: {0}".format(line))
+                logger.debug("STDOUT: {0}".format(line))
         if self.log_stderr and stderr:
             for line in stderr.splitlines():
-                logging.debug("STDERR: {0}".format(line))
+                logger.debug("STDERR: {0}".format(line))
         if p.returncode != 0:
             raise CommandException("Command execution of {0} failed with error code {1} and error output: {2}".format(" ".join(command), p.returncode, stderr))
         return self.parse(stdout, stderr)
