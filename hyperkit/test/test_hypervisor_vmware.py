@@ -37,3 +37,23 @@ class TestVMX(unittest2.TestCase):
         self.assertEqual(self.vmx['foo']['bar'], "baz")
         self.assertEqual(self.vmx['quux'], True)
         self.assertEqual(self.vmx['zap'], 10)
+
+    def test_fmt(self):
+        self.assertEqual(self.vmx.fmt(True), '"TRUE"')
+        self.assertEqual(self.vmx.fmt(False), '"FALSE"')
+        self.assertEqual(self.vmx.fmt(10), '"10"')
+        self.assertEqual(self.vmx.fmt("foo"), '"foo"')
+
+class TestVMWare(unittest2.TestCase):
+
+    def setUp(self):
+        self.vmware = vmware.VMWare()
+        self.vmware.vmrun = mock.MagicMock()
+        self.vmware.qemu_img = mock.MagicMock()
+
+    def test_str(self):
+        self.assertEqual(str(self.vmware), "VMWare")
+
+    def test_present(self):
+        self.vmware.vmrun.pathname = "foo"
+        self.assertTrue(self.vmware.present)
