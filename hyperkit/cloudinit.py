@@ -21,14 +21,16 @@ import yaml
 import random
 import crypt
 
-from hypervisor.runner import Runner
+from hyperkit.hypervisor.command import Command
 
-logger = logging.getLogger("cloudinit")
+logger = logging.getLogger(__name__)
 
-genisoimage = Runner(
-    command_name="genisoimage",
-    args=["-output", "{pathname}", "-volid", "cidata", "-joliet", "-rock"],
-    log_execution=True)
+class GenIsoImage(Command):
+    command_name = "genisoimage"
+    subcommands = {
+        "generate": ["-output", "{pathname}", "-volid", "cidata", "-joliet", "-rock"],
+    }
+    log_execution=True
 
 
 class CloudConfig:
@@ -146,7 +148,8 @@ class Seed:
 
     def _save(self):
         """ Overwrite the seed ISO file. Will clobber it potentially."""
-        genisoimage(*self.filenames, pathname=self.pathname, cwd=self.tmpdir)
+        genisoimage = GenIsoImage()
+        genisoimage("generate", *self.filenames, pathname=self.pathname, cwd=self.tmpdir)
 
     def open(self, filename):
         path = os.path.join(self.tmpdir, filename)

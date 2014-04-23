@@ -19,26 +19,10 @@ import random
 import collections
 
 from hyperkit.cloudinit import CloudConfig, Seed, MetaData
-from .runner import Runner
 from .machine import MachineInstance, Hypervisor
+from .vmrun import VMRun
 
-logger = logging.getLogger("vmware")
-
-
-def vmrun(*args):
-    return Runner(command_name="vmrun", args=args)
-
-qemu_img = Runner(
-    command_name="qemu-img",
-    args=["convert", "-O", "{format}", "{source}", "{destination}"],
-    log_execution=True,
-)
-
-startvm = vmrun("start", "{name}", "{type}")
-stopvm = vmrun("stop", "{name}", "hard")
-deletevm = vmrun("deleteVM", "{name}")
-readVariable = vmrun("readVariable", "{name}", "guestVar", "{variable}")
-
+logger = logging.getLogger(__name__)
 
 class VMX(collections.defaultdict):
 
@@ -187,19 +171,20 @@ class VMWareMachineInstance(MachineInstance):
     def __init__(self, directory, instance_id):
         super(VMWareMachineInstance, self).__init__(directory, instance_id)
         self.vmx = VMX(self.instance_dir, self.instance_id)
+        self.vmrun = VMRun()
 
     def _start(self, gui=False):
         s_type = {
             True: "gui",
             False: "nogui",
             }[gui]
-        startvm(name=self.vmx.pathname, type=s_type)
+        self.vmrun("start", name=self.vmx.pathname, type=s_type)
 
     def _destroy(self):
-        stopvm(name=self.vmx.pathname)
+        self.vmrun("stop", name=self.vmx.pathname)
 
     def get_ip(self):
-        return readVariable(name=self.vmx.pathname, variable="ip").strip()
+        return self.vmrun("readVariable", name=self.vmx.pathname, variable="ip").strip()
 
 
 class VMWareCloudConfig(CloudConfig):
@@ -239,6 +224,10 @@ class VMWare(Hypervisor):
         "fedora": VMWareFedoraCloudConfig,
     }
 
+    def __init__(self):
+        self.vmrun = VMRun()
+        self.qemu_img = QEmuImg()
+
     @property
     def present(self):
         return startvm.pathname is not None
@@ -264,7 +253,8 @@ class VMWare(Hypervisor):
         # create the disk image and attach it
         disk = os.path.join(instance_dir, instance_id + "_disk1.vmdk")
         logger.info("Creating disk image from %s" % (spec.image, ))
-        qemu_img(source=spec.image.fetch(image_dir), destination=disk, format="vmdk")
+        self.qemu_img("convert", source=spec.image.fetch(image_dir), destination=disk, format="vmdk")
+
         vmx.connect_disk(disk)
 
         # create the seed ISO

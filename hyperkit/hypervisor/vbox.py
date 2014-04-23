@@ -18,80 +18,12 @@ import logging
 import shutil
 
 from hyperkit.cloudinit import CloudConfig, Seed, MetaData
-
-from .runner import Runner
 from .machine import MachineInstance, Hypervisor
+from .command import Command
+from .vboxmanage import VBoxManage
+from .qemu_img import QEmuImg
 
-logger = logging.getLogger("vbox")
-
-qemu_img = Runner(
-    command_name="qemu-img",
-    args=["convert", "-O", "{format}", "{source}", "{destination}"],
-)
-
-
-def vboxmanage(*args):
-    return Runner(command_name="VBoxManage", args=args)
-
-createvm = vboxmanage("createvm",
-                      "--name", "{name}",
-                      "--basefolder", "{directory}",
-                      "--ostype", "{ostype}",
-                      "--register")
-
-create_sata = vboxmanage("storagectl", "{name}",
-                         "--name", '"SATA Controller"',
-                         "--add", "sata",
-                         "--controller", "IntelAHCI")
-
-create_ide = vboxmanage("storagectl", "{name}",
-                        "--name", '"IDE Controller"',
-                        "--add", "ide")
-
-attach_disk = vboxmanage("storageattach", "{name}",
-                         "--storagectl", '"SATA Controller"',
-                         "--port", "0", "--device", "0",
-                         "--type", "hdd",
-                         "--medium", "{disk}")
-
-attach_ide = vboxmanage("storageattach", "{name}",
-                        "--storagectl", '"IDE Controller"',
-                        "--port", "{port}", "--device", "{device}",
-                        "--type", "dvddrive",
-                        "--medium", "{filename}")
-
-configurevm = vboxmanage("modifyvm", "{name}",
-                       "--ioapic", "on",
-                       "--boot1", "disk", "--boot2", "none",
-                       "--memory", "{memsize}", "--vram", "12",
-                       "--uart1", "0x3f8", "4",
-                       "--uartmode1", "disconnected")
-
-startvm = vboxmanage("startvm",
-                     "--type", "{type}",
-                     "{name}")
-
-controlvm = vboxmanage("controlvm", "{name}", "{button}")
-
-unregistervm = vboxmanage("unregistervm",
-                          "{name}", "--delete")
-
-# Licensed to the Apache Software Foundation (ASF) under one or more
-# contributor license agreements.  See the NOTICE file distributed with
-# this work for additional information regarding copyright ownership.
-# The ASF licenses this file to You under the Apache License, Version 2.0
-# (the "License"); you may not use this file except in compliance with
-# the License.  You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
-guestproperty = vboxmanage("guestproperty", "get", "{name}", "{property}")
+logger = logging.getLogger(__name__)
 
 class VBoxMachineInstance(MachineInstance):
 
@@ -103,6 +35,7 @@ class VBoxMachineInstance(MachineInstance):
     def __init__(self, directory, instance_id):
         self.directory = directory
         self.instance_id = instance_id
+        self.vboxmanage = VBoxManage()
 
     @property
     def id(self):
@@ -113,18 +46,18 @@ class VBoxMachineInstance(MachineInstance):
             True: "gui",
             False: "headless",
             }[gui]
-        startvm(type=s_type, name=self.instance_id)
+        self.vboxmanage("startvm", type=s_type, name=self.instance_id)
 
     def _stop(self, force=False):
         button = {False: "acpipowerbutton", True: "poweroff"}.get(force)
-        controlvm(name=self.instance_id, button=button)
+        self.vboxmanage("controlvm", name=self.instance_id, button=button)
 
     def _destroy(self):
-        unregistervm(name=self.instance_id)
+        self.vboxmanage("unregistervm", name=self.instance_id)
         shutil.rmtree(os.path.join(self.directory, self.instance_id))
 
     def get_ip(self):
-        s = guestproperty(name=self.instance_id, property="/VirtualBox/GuestInfo/Net/0/V4/IP")
+        self.vboxmanage("guestproperty", name=self.instance_id, property="/VirtualBox/GuestInfo/Net/0/V4/IP")
         if s.startswith("Value: "):
             return s.split(" ", 1)[1]
 
@@ -164,6 +97,10 @@ class VirtualBox(Hypervisor):
         None: "Linux_64",
     }
 
+    def __init__(self):
+        self.vboxmanage = VBoxManage()
+        self.qemu_img = QEmuImg()
+
     def __str__(self):
         return "VirtualBox"
 
@@ -181,17 +118,15 @@ class VirtualBox(Hypervisor):
         os.mkdir(instance_dir)
 
         logger.info("Creating virtual machine")
-        createvm(name=instance_id,
-                 directory=self.directory,
-                 ostype=self.ostype[spec.image.distro])
-        configurevm(name=instance_id, memsize=spec.hardware.memory)
+        self.vboxmanage("createvm", name=instance_id, directory=self.directory, ostype=self.ostype[spec.image.distro])
+        self.vboxmanage("configurevm", name=instance_id, memsize=spec.hardware.memory)
 
         logger.info("Creating disk image from %s" % (spec.image, ))
         # create the disk image and attach it
         disk = os.path.join(instance_dir, instance_id + "_disk1.vdi")
-        qemu_img(source=spec.image.fetch(self.image_dir), destination=disk, format="vdi")
-        create_sata(name=instance_id)
-        attach_disk(name=instance_id, disk=disk)
+        self.qemu_img("convert", source=spec.image.fetch(self.image_dir), destination=disk, format="vdi")
+        self.vboxmanage("create_sata", name=instance_id)
+        self.vboxmanage("attach_disk", name=instance_id, disk=disk)
 
         # create the seed ISO
         logger.info("Creating cloudinit seed")
@@ -203,9 +138,9 @@ class VirtualBox(Hypervisor):
 
         logger.info("Attaching devices")
         # connect the seed ISO and the tools ISO
-        create_ide(name=instance_id)
-        attach_ide(name=instance_id, port="0", device="0", filename=seed.pathname)
-        attach_ide(name=instance_id, port="0", device="1", filename="/usr/share/virtualbox/VBoxGuestAdditions.iso")
+        self.vboxmanage("create_ide", name=instance_id)
+        self.vboxmanage("attach_ide", name=instance_id, port="0", device="0", filename=seed.pathname)
+        self.vboxmanage("attach_ide", name=instance_id, port="0", device="1", filename="/usr/share/virtualbox/VBoxGuestAdditions.iso")
         logger.info("Machine created")
         return self.load(instance_id)
 
