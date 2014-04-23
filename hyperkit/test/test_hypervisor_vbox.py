@@ -6,7 +6,6 @@ from hyperkit.hypervisor.command import Command
 from hyperkit.hypervisor import vbox
 
 
-
 class TestVBoxCommandIntegration(unittest2.TestCase):
 
     """ These are integration tests strictly, to ensure we're calling the

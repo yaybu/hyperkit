@@ -7,6 +7,7 @@ from hyperkit.hypervisor import machine
 
 fixed_date = datetime.datetime(2001, 1, 1)
 
+
 class MockMachineInstance(machine.MachineInstance):
 
     ip = None
@@ -68,6 +69,7 @@ class TestMachineInstance(unittest2.TestCase):
         self.m.wait(10)
         self.assertEqual(self.t, 6)
 
+
 class MockHypervisor(machine.Hypervisor):
 
     instance = mock.MagicMock()
@@ -82,6 +84,7 @@ class MockHypervisor(machine.Hypervisor):
     def present(self):
         return True
 
+
 class TestHypervisor(unittest2.TestCase):
 
     def setUp(self):
@@ -95,9 +98,12 @@ class TestHypervisor(unittest2.TestCase):
 
     @mock.patch("os.path.exists")
     def test_load(self, m_exists):
-        m_exists = True
+        m_exists.return_value = True
         instance = self.hypervisor.load("foo")
         self.assertEqual(instance, self.hypervisor.instance("/fake_dir/foo"))
+        m_exists.return_value = False
+        instance = self.hypervisor.load("foo")
+        self.assertTrue(instance is None)
 
     @mock.patch("os.path.exists")
     @mock.patch("datetime.datetime")
@@ -125,7 +131,3 @@ class TestHypervisor(unittest2.TestCase):
             self.hypervisor.instance("/fake_dir/bar"),
             self.hypervisor.instance("/fake_dir/baz"),
         ])
-
-
-
-
