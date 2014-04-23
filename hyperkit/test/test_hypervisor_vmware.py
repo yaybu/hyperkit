@@ -4,6 +4,7 @@ import mock
 
 from hyperkit.hypervisor import vmware
 
+
 class TestVMX(unittest2.TestCase):
 
     @mock.patch("os.path.exists")
@@ -31,9 +32,8 @@ class TestVMX(unittest2.TestCase):
             "foo.bar = baz\n",
             "quux = TRUE\n",
             "zap = 10\n",
-            ]
+        ]
         self.vmx.read()
         self.assertEqual(self.vmx['foo']['bar'], "baz")
         self.assertEqual(self.vmx['quux'], True)
         self.assertEqual(self.vmx['zap'], 10)
-

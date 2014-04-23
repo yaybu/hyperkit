@@ -1,6 +1,7 @@
 
 from . import command
 
+
 class VMRun(command.Command):
 
     command_name = "vmrun"
@@ -10,6 +11,3 @@ class VMRun(command.Command):
         "delete": ["deleteVM", "{name}"],
         "readVariable": ["readVariable", "{name}", "guestVar", "{variable}"],
     }
-
-
-

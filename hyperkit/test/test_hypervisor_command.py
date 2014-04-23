@@ -4,6 +4,7 @@ import mock
 
 from hyperkit.hypervisor import command
 
+
 class TestCommand(unittest2.TestCase):
 
     def setUp(self):
@@ -14,10 +15,10 @@ class TestCommand(unittest2.TestCase):
         self.command.known_locations = [
             "/fake_bin1",
             "/fake_bin2",
-            ]
+        ]
         self.command.subcommands = {
             "foo": ["bar", "{baz}"],
-            }
+        }
         self.command.log_stderr = True
         self.command.log_stdout = True
 
@@ -95,5 +96,3 @@ class TestCommand(unittest2.TestCase):
             args=["/fake_bin1/thing", "bar", "zorg"],
             cwd="/does_not_exist",
             stderr=-1, stdout=-1))
-
-

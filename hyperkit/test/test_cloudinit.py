@@ -5,6 +5,7 @@ import yaml
 
 from hyperkit import cloudinit
 
+
 class TestCloudConfig(unittest2.TestCase):
 
     def setUp(self):
@@ -39,6 +40,7 @@ class TestCloudConfig(unittest2.TestCase):
         data = yaml.load(stream)
         self.assertTrue(isinstance(data, dict))
 
+
 class TestMetaData(unittest2.TestCase):
 
     def setUp(self):
@@ -49,14 +51,15 @@ class TestMetaData(unittest2.TestCase):
         self.assertEqual(d, {
             "local-hostname": "localhost",
             "instance-id": "foo",
-            })
+        })
 
     def test_open(self):
         d = yaml.load(self.m.open())
         self.assertEqual(d, {
             "local-hostname": "localhost",
             "instance-id": "foo",
-            })
+        })
+
 
 class TestSeed(unittest2.TestCase):
 
@@ -74,6 +77,7 @@ class TestSeed(unittest2.TestCase):
 
     def test_filenames(self):
         self.assertEqual(list(self.seed.filenames), ["user-data", "meta-data"])
+
     @mock.patch("subprocess.Popen")
     @mock.patch("__builtin__.open")
     @mock.patch("os.unlink")

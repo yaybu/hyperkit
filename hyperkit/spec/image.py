@@ -61,6 +61,7 @@ class LiteralImage(Image):
             local.write(data)
         return pathname
 
+
 class DistroImageType(abc.ABCMeta):
 
     """ Registers the distro image with the canonical image fetcher """
@@ -70,6 +71,7 @@ class DistroImageType(abc.ABCMeta):
         if cls.name is not None:
             CanonicalImage.distributions[cls.name] = cls
         return cls
+
 
 class BaseDistroImage(object):
 
@@ -147,4 +149,3 @@ class CanonicalImage(Image):
         return pathname
 
 __all__ = [LiteralImage, CanonicalImage]
-

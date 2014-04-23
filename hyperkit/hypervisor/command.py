@@ -20,8 +20,10 @@ import subprocess
 
 logger = logging.getLogger(__name__)
 
+
 class CommandException(Exception):
     pass
+
 
 class Command(object):
 
@@ -34,7 +36,7 @@ class Command(object):
 
     @property
     def pathname(self):
-        candidates =  itertools.chain(self.known_locations, os.environ['PATH'].split(":"))
+        candidates = itertools.chain(self.known_locations, os.environ['PATH'].split(":"))
         for loc in candidates:
             pathname = os.path.join(loc, self.command_name)
             if os.path.isfile(pathname) and os.access(pathname, os.X_OK):
@@ -76,4 +78,3 @@ class Command(object):
         cwd = kwargs.pop("cwd", None)
         command = self.compose(subcommand, *args, **kwargs)
         return self.execute(command, cwd=cwd)
-

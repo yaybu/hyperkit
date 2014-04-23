@@ -17,8 +17,10 @@ import hashlib
 
 from .distro import StandardDistroImage
 
+
 class FedoraDistroError(Exception):
     pass
+
 
 class FedoraCloudImage(StandardDistroImage):
 

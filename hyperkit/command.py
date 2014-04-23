@@ -17,7 +17,7 @@ import sys
 import argparse
 import logging
 
-from hyperkit.spec import MachineSpec, PasswordAuth, SSHAuth, Hardware, CanonicalImage, LiteralImage
+from hyperkit.spec import MachineSpec, PasswordAuth, Hardware, CanonicalImage, LiteralImage
 from hyperkit.hypervisor import VirtualBox, VMWare
 
 logger = logging.getLogger()

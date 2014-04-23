@@ -25,12 +25,13 @@ from hyperkit.hypervisor.command import Command
 
 logger = logging.getLogger(__name__)
 
+
 class GenIsoImage(Command):
     command_name = "genisoimage"
     subcommands = {
         "generate": ["-output", "{pathname}", "-volid", "cidata", "-joliet", "-rock"],
     }
-    log_execution=True
+    log_execution = True
 
 
 class CloudConfig:

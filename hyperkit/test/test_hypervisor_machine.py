@@ -4,6 +4,7 @@ import mock
 
 from hyperkit.hypervisor import machine
 
+
 class MockMachineInstance(machine.MachineInstance):
 
     ip = None
@@ -20,6 +21,7 @@ class MockMachineInstance(machine.MachineInstance):
 
     def get_ip(self):
         return self.ip
+
 
 class TestMachineInstance(unittest2.TestCase):
 
@@ -51,8 +53,10 @@ class TestMachineInstance(unittest2.TestCase):
     @mock.patch("time.sleep")
     def test_wait_timeout(self, m_sleep, m_time):
         self.t = 0
+
         def time():
             return self.t
+
         def sleep(x):
             self.t += 1
             if self.t > 5:
@@ -61,5 +65,3 @@ class TestMachineInstance(unittest2.TestCase):
         m_time.side_effect = time
         self.m.wait(10)
         self.assertEqual(self.t, 6)
-
-

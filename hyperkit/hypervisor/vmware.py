@@ -21,8 +21,10 @@ import collections
 from hyperkit.cloudinit import CloudConfig, Seed, MetaData
 from .machine import MachineInstance, Hypervisor
 from .vmrun import VMRun
+from .qemu_img import QEmuImg
 
 logger = logging.getLogger(__name__)
+
 
 class VMX(collections.defaultdict):
 
@@ -177,7 +179,7 @@ class VMWareMachineInstance(MachineInstance):
         s_type = {
             True: "gui",
             False: "nogui",
-            }[gui]
+        }[gui]
         self.vmrun("start", name=self.vmx.pathname, type=s_type)
 
     def _destroy(self):
@@ -230,7 +232,7 @@ class VMWare(Hypervisor):
 
     @property
     def present(self):
-        return startvm.pathname is not None
+        return self.vmrun.pathname is not None
 
     def __str__(self):
         return "VMWare"

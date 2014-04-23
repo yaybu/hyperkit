@@ -7,6 +7,7 @@ from hyperkit.hypervisor import vbox
 
 Command.known_locations = ["/fake_bin"]
 
+
 class TestVBoxCommandIntegration(unittest2.TestCase):
 
     """ These are integration tests strictly, to ensure we're calling the
@@ -34,6 +35,7 @@ class TestVBoxCommandIntegration(unittest2.TestCase):
                 '--type', 'gui',
                 'foo'])
 
+
 class TestVBoxMachineInstance(unittest2.TestCase):
 
     def setUp(self):
@@ -50,10 +52,10 @@ class TestVBoxMachineInstance(unittest2.TestCase):
 
     def test_stop(self):
         self.m._stop()
-        self.assertEqual(self.m.vboxmanage.call_args, mock.call('controlvm',  name='foo', button='acpipowerbutton'))
+        self.assertEqual(self.m.vboxmanage.call_args, mock.call('controlvm', name='foo', button='acpipowerbutton'))
 
     @mock.patch("shutil.rmtree")
     def test_destroy(self, m_rmtree):
         self.m._destroy()
-        self.assertEqual(self.m.vboxmanage.call_args, mock.call('unregistervm',  name='foo'))
+        self.assertEqual(self.m.vboxmanage.call_args, mock.call('unregistervm', name='foo'))
         self.assertEqual(m_rmtree.call_args, mock.call("/does_not_exist/foo"))

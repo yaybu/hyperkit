@@ -19,11 +19,11 @@ import shutil
 
 from hyperkit.cloudinit import CloudConfig, Seed, MetaData
 from .machine import MachineInstance, Hypervisor
-from .command import Command
 from .vboxmanage import VBoxManage
 from .qemu_img import QEmuImg
 
 logger = logging.getLogger(__name__)
+
 
 class VBoxMachineInstance(MachineInstance):
 
@@ -45,7 +45,7 @@ class VBoxMachineInstance(MachineInstance):
         s_type = {
             True: "gui",
             False: "headless",
-            }[gui]
+        }[gui]
         self.vboxmanage("startvm", type=s_type, name=self.instance_id)
 
     def _stop(self, force=False):
@@ -57,7 +57,7 @@ class VBoxMachineInstance(MachineInstance):
         shutil.rmtree(os.path.join(self.directory, self.instance_id))
 
     def get_ip(self):
-        self.vboxmanage("guestproperty", name=self.instance_id, property="/VirtualBox/GuestInfo/Net/0/V4/IP")
+        s = self.vboxmanage("guestproperty", name=self.instance_id, property="/VirtualBox/GuestInfo/Net/0/V4/IP")
         if s.startswith("Value: "):
             return s.split(" ", 1)[1]
 
@@ -106,7 +106,7 @@ class VirtualBox(Hypervisor):
 
     @property
     def present(self):
-        return createvm.pathname is not None
+        return self.vboxmanage.pathname is not None
 
     def create(self, spec):
         """ Create a new virtual machine in the specified directory from the base image. """

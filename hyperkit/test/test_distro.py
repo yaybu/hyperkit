@@ -10,6 +10,7 @@ from hyperkit.distro.cirros import CirrosCloudImage
 from hyperkit.distro.fedora import FedoraCloudImage
 from hyperkit import error
 
+
 class MockDistroImage(distro.DistroImage):
 
     @property
@@ -24,6 +25,7 @@ class MockDistroImage(distro.DistroImage):
 
     def image_hash(self, hashes):
         return hashes["bar"]
+
 
 class TestDistroImage(unittest2.TestCase):
 
@@ -123,6 +125,7 @@ class TestDistroImage(unittest2.TestCase):
         self.assertEqual(self.image.remote_hash, "foo")
         self.assertEqual(self.image.local_hash, "3858f62230ac3c915f300c664312c63f")
 
+
 class TestUbuntuCloudImage(unittest2.TestCase):
 
     def setUp(self):
@@ -139,6 +142,7 @@ class TestUbuntuCloudImage(unittest2.TestCase):
     def test_image_hash(self):
         good = "*ubuntu-14.04-server-cloudimg-amd64-disk1.img"
         self.assertEqual(self.image.image_hash({good: "foo", }), "foo")
+
 
 class TestCirrosImage(unittest2.TestCase):
 
@@ -174,6 +178,7 @@ Tbtsx1bwzSh17kL5RYqT
 =ynzB
 -----END PGP SIGNATURE-----
 """
+
 
 class TestFedoraImage(unittest2.TestCase):
 
