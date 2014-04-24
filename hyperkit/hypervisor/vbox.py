@@ -85,6 +85,7 @@ class VBoxUbuntuCloudConfig(VBoxCloudConfig):
 class VBoxFedoraCloudConfig(VBoxCloudConfig):
     pass
 
+
 class HostOnlyNetwork(object):
 
     """ This is the most useful of the virtualbox networking types, because
@@ -158,6 +159,7 @@ class NewHostOnlyNetwork(object):
 
     def __str__(self):
         return "A new VirtualBox host-only network"
+
 
 class VirtualBox(Hypervisor):
 
