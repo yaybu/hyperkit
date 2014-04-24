@@ -44,6 +44,7 @@ class CloudConfig:
         "package_reboot_if_required",
         "packages",
         "runcmd",
+        "write_files",
     ]
 
     def __init__(self, auth):

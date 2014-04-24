@@ -39,6 +39,14 @@ class VBoxManage(command.Command):
                         "--uart1", "0x3f8", "4",
                         "--uartmode1", "disconnected"],
 
+        "configure_nic": ["modifyvm", "{name}",
+                          "--nic2", "hostonly"],
+
+        "configure_hostonly": ["modifyvm", "{name}",
+                               "--hostonlyadapter2", "{adapter}"],
+
+        "create_hostonly": ["hostonlyif", "create"],
+
         "startvm": ["startvm",
                     "--type", "{type}",
                     "{name}"],

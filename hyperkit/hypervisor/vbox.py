@@ -58,7 +58,7 @@ class VBoxMachineInstance(MachineInstance):
         shutil.rmtree(os.path.join(self.directory, self.instance_id))
 
     def get_ip(self):
-        s = self.vboxmanage("guestproperty", name=self.instance_id, property="/VirtualBox/GuestInfo/Net/0/V4/IP")
+        s = self.vboxmanage("guestproperty", name=self.instance_id, property="/VirtualBox/GuestInfo/Net/1/V4/IP")
         if s.startswith("Value: "):
             return s.split(" ", 1)[1]
 
@@ -75,11 +75,15 @@ class VBoxUbuntuCloudConfig(VBoxCloudConfig):
     #package_update = True
     #package_upgrade = True
     packages = ['build-essential']
+    write_files = [{
+        "path": "/etc/network/interfaces.d/eth1.cfg",
+        "content": ("auto eth1\n"
+                    "iface eth1 inet dhcp\n"),
+    }]
 
 
 class VBoxFedoraCloudConfig(VBoxCloudConfig):
     pass
-
 
 class HostOnlyNetwork(object):
 
@@ -109,6 +113,12 @@ class HostOnlyNetwork(object):
         n = ipaddress.ip_network(u"%s/%s" % (self.ip_address, self.netmask), strict=False)
         return "VirtualBox host-only network %s %s" % (self.name, n)
 
+    def configurevm(self, name):
+        v = VBoxManage()
+        logger.info("Using network %s" % self.name)
+        v("configure_nic", name=name)
+        v("configure_hostonly", name=name, adapter=self.name)
+
     @classmethod
     def find_networks(self):
         v = VBoxManage()
@@ -129,8 +139,25 @@ class HostOnlyNetwork(object):
                     elif key == 'dhcp':
                         value = value == "Enabled"
                     d[key] = value
-        yield self(**d)
+        if d:
+            yield self(**d)
 
+
+class NewHostOnlyNetwork(object):
+
+    def configurevm(self, name):
+        logger.info("Creating new host-only network")
+        v = VBoxManage()
+        output = v("create_hostonly")
+        for line in output.splitlines():
+            if line.startswith("Interface"):
+                adapter = line.split()[1].strip("'")
+                logger.info("Network %s created" % adapter)
+                v("configure_nic", name=name)
+                v("configure_hostonly", name=name, adapter=adapter)
+
+    def __str__(self):
+        return "A new VirtualBox host-only network"
 
 class VirtualBox(Hypervisor):
 
@@ -160,12 +187,16 @@ class VirtualBox(Hypervisor):
     def present(self):
         return self.vboxmanage.pathname is not None
 
-    def network(self):
+    def guess_network(self):
         """ Return a Network object that represents networking configuration for the hypervisor """
         # decide what sort of network we are going to use
         # return the actual type
         # right now we just use the first host only network and that's it
-        return list(HostOnlyNetwork.find_networks())[0]
+        host_only = list(HostOnlyNetwork.find_networks())
+        if host_only:
+            return host_only[0]
+        else:
+            return NewHostOnlyNetwork()
 
     def create(self, spec):
         """ Create a new virtual machine in the specified directory from the base image. """
@@ -179,6 +210,8 @@ class VirtualBox(Hypervisor):
         logger.info("Creating virtual machine")
         self.vboxmanage("createvm", name=instance_id, directory=self.directory, ostype=self.ostype[spec.image.distro])
         self.vboxmanage("configurevm", name=instance_id, memsize=spec.hardware.memory)
+        network = self.guess_network()
+        network.configurevm(instance_id)
 
         logger.info("Creating disk image from %s" % (spec.image, ))
         # create the disk image and attach it

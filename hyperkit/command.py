@@ -154,7 +154,7 @@ def net(args):
 
 def net_show(args):
     hypervisor = guess_hypervisor(args)()
-    network = hypervisor.network()
+    network = hypervisor.guess_network()
     logging.info(str(network))
 
 
