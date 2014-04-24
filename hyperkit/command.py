@@ -147,14 +147,15 @@ def wait(args):
     vm.wait(0)
     logging.info("Machine is running")
 
+
 def net(args):
     args.sub_func(args)
+
 
 def net_show(args):
     hypervisor = guess_hypervisor(args)()
     network = hypervisor.network()
     logging.info(str(network))
-
 
 
 def main():

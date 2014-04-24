@@ -44,6 +44,7 @@ class TestVMX(unittest2.TestCase):
         self.assertEqual(self.vmx.fmt(10), '"10"')
         self.assertEqual(self.vmx.fmt("foo"), '"foo"')
 
+
 class TestVMWare(unittest2.TestCase):
 
     def setUp(self):

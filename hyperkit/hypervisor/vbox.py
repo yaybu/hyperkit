@@ -80,6 +80,7 @@ class VBoxUbuntuCloudConfig(VBoxCloudConfig):
 class VBoxFedoraCloudConfig(VBoxCloudConfig):
     pass
 
+
 class HostOnlyNetwork(object):
 
     """ This is the most useful of the virtualbox networking types, because
@@ -129,6 +130,7 @@ class HostOnlyNetwork(object):
                         value = value == "Enabled"
                     d[key] = value
         yield self(**d)
+
 
 class VirtualBox(Hypervisor):
 

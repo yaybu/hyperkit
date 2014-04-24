@@ -2,7 +2,6 @@ import unittest2
 import mock
 
 from hyperkit.hypervisor.command import Command
-from hyperkit.spec.spec import MachineSpec
 from hyperkit.hypervisor import vbox
 
 
@@ -66,6 +65,7 @@ class TestVBoxMachineInstance(unittest2.TestCase):
         self.m.vboxmanage.return_value = "Value: 192.168.0.1"
         ip = self.m.get_ip()
         self.assertEqual(ip, "192.168.0.1")
+
 
 class TestVirtualBox(unittest2.TestCase):
 
