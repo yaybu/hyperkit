@@ -49,4 +49,6 @@ class VBoxManage(command.Command):
 
         "guestproperty": ["guestproperty", "get", "{name}", "{property}"],
 
+        "list_hostonlyifs": ["list", "hostonlyifs"],
+
     }

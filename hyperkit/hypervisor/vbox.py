@@ -16,6 +16,7 @@
 import os
 import logging
 import shutil
+import ipaddress
 
 from hyperkit.cloudinit import CloudConfig, Seed, MetaData
 from .machine import MachineInstance, Hypervisor
@@ -79,6 +80,55 @@ class VBoxUbuntuCloudConfig(VBoxCloudConfig):
 class VBoxFedoraCloudConfig(VBoxCloudConfig):
     pass
 
+class HostOnlyNetwork(object):
+
+    """ This is the most useful of the virtualbox networking types, because
+    it doesn't require any port forwarding. """
+
+    parse_map = {
+        'Name': 'name',
+        'GUID': 'guid',
+        'DHCP': 'dhcp',
+        'IPAddress': 'ip_address',
+        'NetworkMask': 'netmask',
+        'HardwareAddress': 'mac',
+        'Status': 'running',
+    }
+
+    def __init__(self, name, guid, dhcp, ip_address, netmask, mac, running):
+        self.name = name
+        self.guid = guid
+        self.dhcp = dhcp
+        self.ip_address = ip_address
+        self.netmask = netmask
+        self.mac = mac
+        self.running = running
+
+    def __str__(self):
+        n = ipaddress.ip_network(u"%s/%s" % (self.ip_address, self.netmask), strict=False)
+        return "VirtualBox host-only network %s %s" % (self.name, n)
+
+    @classmethod
+    def find_networks(self):
+        v = VBoxManage()
+        output = v("list_hostonlyifs")
+        d = {}
+        for line in output.splitlines():
+            if not line.strip():
+                # blank line means we've completed that network
+                yield self(**d)
+                d = {}
+            else:
+                key, value = [x.strip() for x in line.split(":", 1)]
+                if key in self.parse_map:
+                    key = self.parse_map[key]
+                    # these are booleans
+                    if key == 'running':
+                        value = value == "Up"
+                    elif key == 'dhcp':
+                        value = value == "Enabled"
+                    d[key] = value
+        yield self(**d)
 
 class VirtualBox(Hypervisor):
 
@@ -107,6 +157,13 @@ class VirtualBox(Hypervisor):
     @property
     def present(self):
         return self.vboxmanage.pathname is not None
+
+    def network(self):
+        """ Return a Network object that represents networking configuration for the hypervisor """
+        # decide what sort of network we are going to use
+        # return the actual type
+        # right now we just use the first host only network and that's it
+        return list(HostOnlyNetwork.find_networks())[0]
 
     def create(self, spec):
         """ Create a new virtual machine in the specified directory from the base image. """

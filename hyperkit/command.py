@@ -147,6 +147,15 @@ def wait(args):
     vm.wait(0)
     logging.info("Machine is running")
 
+def net(args):
+    args.sub_func(args)
+
+def net_show(args):
+    hypervisor = guess_hypervisor(args)()
+    network = hypervisor.network()
+    logging.info(str(network))
+
+
 
 def main():
 
@@ -194,6 +203,13 @@ def main():
     wait_parser = sub.add_parser("wait", help="Wait until the virtual machine starts")
     wait_parser.add_argument("name", help="The name of the virtual machine as passed to create")
     wait_parser.set_defaults(func=wait)
+
+    net_parser = sub.add_parser("net", help="Network operations")
+    net_parser.set_defaults(func=net)
+    netsub = net_parser.add_subparsers()
+
+    net_show_parser = netsub.add_parser("show", help="Show the network configurations that will be used for virtual machines")
+    net_show_parser.set_defaults(sub_func=net_show)
 
     args = parser.parse_args()
 
