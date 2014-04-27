@@ -146,6 +146,7 @@ def wait(args):
     vm = hypervisor.load(args.name)
     vm.wait(0)
     logging.info("Machine is running")
+    print vm.get_ip()
 
 
 def net(args):
