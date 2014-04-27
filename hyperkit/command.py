@@ -51,6 +51,7 @@ def make_password_auth(args):
 def make_public_key_auth(args):
     raise NotImplementedError()
 
+
 def guess_best_agent_key():
     keys = os.listdir(os.path.expanduser("~/.ssh"))
     keys = [x[:-4] for x in keys if x.endswith(".pub")]
