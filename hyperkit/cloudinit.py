@@ -78,11 +78,10 @@ class CloudConfig:
             "name": self.username,
             "passwd": self.hashed_password,
             "gecos": "Yaybu",
+            "homedir": "/home/%s" % self.username,
             "groups": ["adm", "audio", "cdrom", "dialout", "floppy", "video", "plugdev", "dip", "netdev"],
             "lock-passwd": False,
             "inactive": False,
-            "system": False,
-            "no-create-home": False,
             "sudo": "ALL=(ALL) NOPASSWD:ALL",
         }
         config['users'] = [default_user]
