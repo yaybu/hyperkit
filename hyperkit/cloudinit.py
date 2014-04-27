@@ -55,8 +55,11 @@ class CloudConfig:
         for t in self.terms:
             if hasattr(self, t):
                 config[t] = getattr(self, t)
-        if self.username and self.password:
+        self.base_user(config)
+        if self.password is not None:
             self.set_password_auth(config)
+        if self.public_key is not None:
+            self.set_public_key_auth(config)
         return config
 
     @property
@@ -68,15 +71,18 @@ class CloudConfig:
         return getattr(self.auth, "password", None)
 
     @property
+    def public_key(self):
+        return getattr(self.auth, "public_key", None)
+
+    @property
     def hashed_password(self):
         if self.password is None:
             return None
         return self.encrypt(self.password)
 
-    def set_password_auth(self, config):
+    def base_user(self, config):
         default_user = {
             "name": self.username,
-            "passwd": self.hashed_password,
             "gecos": "Yaybu",
             "homedir": "/home/%s" % self.username,
             "groups": ["adm", "audio", "cdrom", "dialout", "floppy", "video", "plugdev", "dip", "netdev"],
@@ -85,9 +91,16 @@ class CloudConfig:
             "sudo": "ALL=(ALL) NOPASSWD:ALL",
         }
         config['users'] = [default_user]
+
+    def set_password_auth(self, config):
+        config['users'][0]['passwd'] = self.hashed_password
         config['ssh_pwauth'] = True
         config['chpasswd'] = {'expire': False}
         config['password'] = self.password
+
+    def set_public_key_auth(self, config):
+        key = open(self.public_key).read()
+        config['users'][0]['ssh-authorized-keys'] = [key]
 
     def encrypt(self, passwd):
         """ Return the password hash for the specified password """

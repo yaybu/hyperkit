@@ -13,11 +13,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import os
 import sys
 import argparse
 import logging
 
-from hyperkit.spec import MachineSpec, PasswordAuth, Hardware, CanonicalImage, LiteralImage
+from hyperkit.spec import MachineSpec, PasswordAuth, SSHAuth, Hardware, CanonicalImage, LiteralImage
 from hyperkit.hypervisor import VirtualBox, VMWare
 
 logger = logging.getLogger()
@@ -50,9 +51,32 @@ def make_password_auth(args):
 def make_public_key_auth(args):
     raise NotImplementedError()
 
+def guess_best_agent_key():
+    keys = os.listdir(os.path.expanduser("~/.ssh"))
+    keys = [x[:-4] for x in keys if x.endswith(".pub")]
+    if not keys:
+        raise KeyError("No keys found")
+    if "id_rsa" in keys:
+        return "id_rsa"
+    if "id_dsa" in keys:
+        return "id_dsa"
+    return keys[0]
+
 
 def make_agent_key_auth(args):
-    raise NotImplementedError()
+    logging.debug("Using ssh agent keys for user %r" % args.username)
+    if args.key_id is not None:
+        key_id = args.key_id
+    else:
+        key_id = guess_best_agent_key()
+    logging.debug("Using key %r" % key_id)
+    public_key = os.path.expanduser("~/.ssh/%s.pub" % key_id)
+    private_key = os.path.expanduser("~/.ssh/%s" % key_id)
+    if not os.path.exists(public_key):
+        raise OSError("Missing public key file %r" % public_key)
+    if not os.path.exists(private_key):
+        raise OSError("Missing private key file %r" % private_key)
+    return SSHAuth(args.username, public_key, private_key)
 
 
 def make_auth(args):
