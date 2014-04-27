@@ -1,6 +1,5 @@
 
  - implement the vmware -T sniffery again
- - make the unit tests work again
  - support ssh keys into cloudinit
  - support literal keys and ssh-agent keys
  - support changing usernames on precise
@@ -8,5 +7,3 @@
  - write integration tests for the above
  - support folder mapping
  - vagrantlike behaviour, with folder mapping
- - 
-
