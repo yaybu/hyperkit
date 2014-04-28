@@ -186,7 +186,7 @@ class VMWareMachineInstance(MachineInstance):
         s_type = {
             True: "hard",
             False: "soft",
-            }[force]
+        }[force]
         self.vmrun("stop", name=self.vmx.pathname, type=s_type)
 
     def _destroy(self):
