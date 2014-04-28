@@ -122,7 +122,7 @@ class Hypervisor(object):
 
     def get_instance_id(self, spec):
         today = datetime.datetime.now()
-        instance_id = "{0}-{1:%Y-%m-%d}".format(spec.name, today)
+        instance_id = spec.name
         count = 1
         while True:
             pathname = os.path.join(self.directory, instance_id)
