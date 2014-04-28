@@ -182,6 +182,13 @@ class VMWareMachineInstance(MachineInstance):
         }[gui]
         self.vmrun("start", name=self.vmx.pathname, type=s_type)
 
+    def _stop(self, force=False):
+        s_type = {
+            True: "hard",
+            False: "soft",
+            }[force]
+        self.vmrun("stop", name=self.vmx.pathname, type=s_type)
+
     def _destroy(self):
         self.vmrun("stop", name=self.vmx.pathname)
 
