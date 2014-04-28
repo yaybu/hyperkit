@@ -112,7 +112,7 @@ class TestHypervisor(unittest2.TestCase):
         m_datetime.now.return_value = fixed_date
         spec = mock.MagicMock()
         spec.name = "foo"
-        self.assertEqual(self.hypervisor.get_instance_id(spec), "foo-2001-01-01")
+        self.assertEqual(self.hypervisor.get_instance_id(spec), "foo")
 
     @mock.patch("os.path.exists")
     @mock.patch("datetime.datetime")

@@ -12,6 +12,7 @@ class TestCloudConfig(unittest2.TestCase):
         self.auth = mock.MagicMock()
         self.auth.username = "foo"
         self.auth.password = "bar"
+        self.auth.public_key = None
         self.c = cloudinit.CloudConfig(self.auth)
 
     def test_get_config(self):

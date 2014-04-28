@@ -19,6 +19,7 @@ class TestCommand(unittest2.TestCase):
         self.command.subcommands = {
             "foo": ["bar", "{baz}"],
         }
+        self.command.log_execution = False
         self.command.log_stderr = True
         self.command.log_stdout = True
 
