@@ -85,6 +85,7 @@ class CloudConfig:
             "name": self.username,
             "gecos": "Yaybu",
             "homedir": "/home/%s" % self.username,
+            "shell": "/bin/bash",
             "groups": ["adm", "audio", "cdrom", "dialout", "floppy", "video", "plugdev", "dip", "netdev"],
             "lock-passwd": False,
             "inactive": False,
