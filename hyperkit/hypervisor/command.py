@@ -30,9 +30,9 @@ class Command(object):
     known_locations = ()
     command_name = None
     subcommands = {}
-    log_execution = False
-    log_stdout = False
-    log_stderr = False
+    log_execution = True
+    log_stdout = True
+    log_stderr = True
 
     @property
     def pathname(self):
