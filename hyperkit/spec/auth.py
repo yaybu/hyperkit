@@ -34,6 +34,6 @@ class SSHAuth(Auth):
         self.private_key = private_key
 
     def __str__(self):
-        return "SSH authentication using public key file '%s'" % (self.public_key, )
+        return "SSH authentication for username '%s' using public key '%s'" % (self.username, self.public_key, )
 
 __all__ = [Auth, PasswordAuth, SSHAuth]
