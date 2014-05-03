@@ -9,7 +9,6 @@ They will only work if you have all the moving parts available
 """
 
 import time
-import os
 import unittest
 import subprocess
 import random
@@ -92,8 +91,8 @@ class TestSystem(unittest.TestCase):
         print "Testing", system, distro, release, arch
         name = self.generate_name()
         print "Creating virtual machine", name
-        r = self.hyperkit(system, "create", [name, distro, release, arch])
-        r = self.hyperkit(system, "destroy", [name])
+        self.hyperkit(system, "create", [name, distro, release, arch])
+        self.hyperkit(system, "destroy", [name])
 
 if __name__ == '__main__':
     print "Running system tests"
