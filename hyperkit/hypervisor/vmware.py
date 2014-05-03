@@ -233,7 +233,8 @@ class VMWare(Hypervisor):
         "fedora": VMWareFedoraCloudConfig,
     }
 
-    def __init__(self):
+    def __init__(self, directory=None):
+        super(VMWare, self).__init__(directory)
         self.vmrun = VMRun()
         self.qemu_img = QEmuImg()
 

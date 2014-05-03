@@ -100,6 +100,10 @@ class Hypervisor(object):
     # the directory that contains images
     image_dir = os.path.expanduser("~/.hyperkit")
 
+    def __init__(self, directory=None):
+        if directory is not None:
+            self.directory = directory
+
     def set_image_dir(self, image_dir):
         self.image_dir = os.path.expanduser(image_dir)
 

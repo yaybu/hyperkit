@@ -42,6 +42,8 @@ def guess_hypervisor(args):
         logging.debug("%r hypervisor selected by inspection" % hypervisor)
     return hypervisor
 
+def make_hypervisor(args):
+    return guess_hypervisor(args)(args.directory)
 
 def make_password_auth(args):
     logging.debug("Using password authentication for user %r" % args.username)
@@ -121,7 +123,7 @@ def make_spec(args):
 
 
 def create(args):
-    hypervisor = guess_hypervisor(args)()
+    hypervisor = make_hypervisor(args)
     spec = make_spec(args)
     logging.info("Creating a new %s machine '%s' with:" % (hypervisor, spec.name))
     logging.info("    authentication: %s" % (spec.auth, ))
@@ -133,7 +135,7 @@ def create(args):
 
 
 def start(args):
-    hypervisor = guess_hypervisor(args)()
+    hypervisor = make_hypervisor(args)
     logging.info("Starting %s machine '%s'" % (hypervisor, args.name))
     vm = hypervisor.load(args.name)
     vm.start()
@@ -145,7 +147,7 @@ def start(args):
 
 
 def stop(args):
-    hypervisor = guess_hypervisor(args)()
+    hypervisor = make_hypervisor(args)
     logging.info("Stopping %s machine '%s'" % (hypervisor, args.name))
     vm = hypervisor.load(args.name)
     vm.stop(force=args.force)
@@ -153,7 +155,7 @@ def stop(args):
 
 
 def destroy(args):
-    hypervisor = guess_hypervisor(args)()
+    hypervisor = make_hypervisor(args)
     logging.info("Destroying %s machine '%s'" % (hypervisor, args.name))
     vm = hypervisor.load(args.name)
     vm.destroy()
@@ -161,13 +163,13 @@ def destroy(args):
 
 
 def ip(args):
-    hypervisor = guess_hypervisor(args)()
+    hypervisor = make_hypervisor(args)
     vm = hypervisor.load(args.name)
     print vm.get_ip()
 
 
 def wait(args):
-    hypervisor = guess_hypervisor(args)()
+    hypervisor = make_hypervisor(args)
     vm = hypervisor.load(args.name)
     vm.wait(0)
     logging.info("Machine is running")
@@ -179,7 +181,7 @@ def net(args):
 
 
 def net_show(args):
-    hypervisor = guess_hypervisor(args)()
+    hypervisor = make_hypervisor(args)
     network = hypervisor.guess_network()
     logging.info(str(network))
 
@@ -193,6 +195,7 @@ def main():
     parser.add_argument("-q", "--quiet", default=False, action="store_true", help="produce no output unless there is an error")
     parser.add_argument("-d", "--debug", default=False, action="store_true", help="produce lots of output")
     parser.add_argument("-H", "--hypervisor", help="The name of the hypervisor layer to use", choices=["vmware", "vbox"])
+    parser.add_argument("-D", "--directory", default=None, help="The directory the VM resides in, if different from the hypervisor default")
     sub = parser.add_subparsers()
 
     create_parser = sub.add_parser("create", help="Create a new virtual machine")

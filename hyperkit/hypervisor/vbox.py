@@ -178,7 +178,8 @@ class VirtualBox(Hypervisor):
         None: "Linux_64",
     }
 
-    def __init__(self):
+    def __init__(self, directory=None):
+        super(VirtualBox, self).__init__(directory)
         self.vboxmanage = VBoxManage()
         self.qemu_img = QEmuImg()
 
