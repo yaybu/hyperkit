@@ -1,6 +1,3 @@
-
- - implement the vmware -T sniffery again
- - support ssh keys into cloudinit
  - support literal keys and ssh-agent keys
  - support changing usernames on precise
  - determine which distros and releases and hypervisors we will test with
