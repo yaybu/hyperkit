@@ -7,7 +7,6 @@ They will only work if you have all the moving parts available
 
 """
 
-import sys
 import os
 import unittest2
 import subprocess
@@ -15,8 +14,6 @@ import random
 import tempfile
 import shutil
 
-from hyperkit.hypervisor import vbox
-from hyperkit.hypervisor import vmware
 
 class TestSystem(unittest2.TestCase):
 

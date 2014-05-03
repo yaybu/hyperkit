@@ -42,8 +42,10 @@ def guess_hypervisor(args):
         logging.debug("%r hypervisor selected by inspection" % hypervisor)
     return hypervisor
 
+
 def make_hypervisor(args):
     return guess_hypervisor(args)(args.directory)
+
 
 def make_password_auth(args):
     logging.debug("Using password authentication for user %r" % args.username)
