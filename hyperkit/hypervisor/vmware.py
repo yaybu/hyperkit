@@ -270,7 +270,7 @@ class VMWare(Hypervisor):
         # create the seed ISO
         logger.info("Creating CloudInfo Seed")
         config_class = self.configs[spec.image.distro]
-        cloud_config = config_class(spec.auth)
+        cloud_config = config_class(spec)
         meta_data = MetaData(spec.name)
         seed = Seed(instance_dir, cloud_config=cloud_config, meta_data=meta_data)
         seed.write()

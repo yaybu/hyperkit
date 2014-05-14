@@ -34,6 +34,7 @@ class VBoxMachineInstance(MachineInstance):
     timeout = 300
 
     def __init__(self, directory, instance_id):
+        super(VBoxMachineInstance, self).__init__(directory, instance_id)
         self.directory = directory
         self.instance_id = instance_id
         self.vboxmanage = VBoxManage()
@@ -226,7 +227,7 @@ class VirtualBox(Hypervisor):
         # create the seed ISO
         logger.info("Creating cloudinit seed")
         config_class = self.configs[spec.image.distro]
-        cloud_config = config_class(spec.auth)
+        cloud_config = config_class(spec)
         meta_data = MetaData(spec.name)
         seed = Seed(instance_dir, cloud_config=cloud_config, meta_data=meta_data)
         seed.write()

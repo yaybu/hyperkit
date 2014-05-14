@@ -15,11 +15,17 @@
 
 
 class Hardware(object):
-    def __init__(self, memory=256, cpus=1):
+    def __init__(self, memory=1024, cpus=1):
         self.memory = memory
         self.cpus = cpus
 
+    @property
+    def cpu_plural(self):
+        if self.cpus != 1:
+            return "s"
+        return ""
+
     def __str__(self):
-        return "%s CPUs %s RAM" % (self.cpus, self.memory)
+        return "%s CPU%s %s RAM" % (self.cpus, self.cpu_plural, self.memory)
 
 __all__ = [Hardware]

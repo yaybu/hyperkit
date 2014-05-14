@@ -47,8 +47,8 @@ class CloudConfig:
         "write_files",
     ]
 
-    def __init__(self, auth):
-        self.auth = auth
+    def __init__(self, spec):
+        self.spec = spec
 
     def get_config(self):
         config = {}
@@ -64,15 +64,15 @@ class CloudConfig:
 
     @property
     def username(self):
-        return getattr(self.auth, "username", None)
+        return getattr(self.spec.auth, "username", None)
 
     @property
     def password(self):
-        return getattr(self.auth, "password", None)
+        return getattr(self.spec.auth, "password", None)
 
     @property
     def public_key(self):
-        return getattr(self.auth, "public_key", None)
+        return getattr(self.spec.auth, "public_key", None)
 
     @property
     def hashed_password(self):
