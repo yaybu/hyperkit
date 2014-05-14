@@ -39,3 +39,11 @@ class SystemNotKnown(CloudInitException):
 
 class CannotGenerateSeed(CloudInitException):
     pass
+
+
+class MachineException(Exception):
+    pass
+
+
+class MachineDoesNotExist(MachineException):
+    pass

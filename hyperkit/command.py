@@ -20,6 +20,7 @@ import logging
 
 from hyperkit.spec import MachineSpec, PasswordAuth, SSHAuth, Hardware, CanonicalImage, LiteralImage
 from hyperkit.hypervisor import VirtualBox, VMWare
+from hyperkit.error import MachineDoesNotExist
 
 logger = logging.getLogger()
 
@@ -127,7 +128,7 @@ def make_spec(args):
 def create(args):
     hypervisor = make_hypervisor(args)
     spec = make_spec(args)
-    logging.info("Creating a new %s machine '%s' with:" % (hypervisor, spec.name))
+    logging.info("Attempting to create a new %s machine '%s' with:" % (hypervisor, spec.name))
     logging.info("    authentication: %s" % (spec.auth, ))
     logging.info("    base image: %s" % spec.image)
     logging.info("    hardware: %s" % spec.hardware)
@@ -138,9 +139,9 @@ def create(args):
 
 def start(args):
     hypervisor = make_hypervisor(args)
-    logging.info("Starting %s machine '%s'" % (hypervisor, args.name))
+    logging.info("Attempting to start %s machine '%s'" % (hypervisor, args.name))
     vm = hypervisor.load(args.name)
-    vm.start()
+    vm.start(gui=args.gui)
     logging.info("Machine starting.")
     if args.wait:
         logging.info("Waiting for startup to complete...")
@@ -150,7 +151,7 @@ def start(args):
 
 def stop(args):
     hypervisor = make_hypervisor(args)
-    logging.info("Stopping %s machine '%s'" % (hypervisor, args.name))
+    logging.info("Attempting to stop %s machine '%s'" % (hypervisor, args.name))
     vm = hypervisor.load(args.name)
     vm.stop(force=args.force)
     logging.info("Machine stopping")
@@ -158,7 +159,7 @@ def stop(args):
 
 def destroy(args):
     hypervisor = make_hypervisor(args)
-    logging.info("Destroying %s machine '%s'" % (hypervisor, args.name))
+    logging.info("Attempting to destroy %s machine '%s'" % (hypervisor, args.name))
     vm = hypervisor.load(args.name)
     vm.destroy()
     logging.info("Machine destroyed")
@@ -176,6 +177,12 @@ def wait(args):
     vm.wait(0)
     logging.info("Machine is running")
     print vm.get_ip()
+
+
+def path(args):
+    hypervisor = make_hypervisor(args)
+    vm = hypervisor.load(args.name)
+    print vm.path()
 
 
 def net(args):
@@ -218,6 +225,7 @@ def main():
     start_parser = sub.add_parser("start", help="Start a named virtual machine")
     start_parser.add_argument("name", help="The name of the virtual machine as passed to create")
     start_parser.add_argument("--wait", action="store_true", default=False, help="Wait for the machine to start before returning")
+    start_parser.add_argument("--gui", action="store_true", default=False, help="Activate the GUI")
     start_parser.set_defaults(func=start)
 
     stop_parser = sub.add_parser("stop", help="Stop a named virtual machine")
@@ -237,6 +245,10 @@ def main():
     wait_parser.add_argument("name", help="The name of the virtual machine as passed to create")
     wait_parser.set_defaults(func=wait)
 
+    path_parser = sub.add_parser("path", help="Print the path to the VM")
+    path_parser.add_argument("name", help="The name of the virtual machine as passed to create")
+    path_parser.set_defaults(func=path)
+
     net_parser = sub.add_parser("net", help="Network operations")
     net_parser.set_defaults(func=net)
     netsub = net_parser.add_subparsers()
@@ -250,4 +262,7 @@ def main():
         logger.setLevel(logging.DEBUG)
     if args.quiet:
         logger.setLevel(logging.ERROR)
-    args.func(args)
+    try:
+        args.func(args)
+    except MachineDoesNotExist:
+        logging.error("Specified virtual machine does not exist")

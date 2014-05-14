@@ -12,10 +12,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 import abc
 import time
 import os
 import datetime
+
+from ..error import MachineDoesNotExist
 
 
 class State:
@@ -38,6 +41,8 @@ class MachineInstance(object):
         self.instance_dir = os.path.join(directory, instance_id)
         self.instance_id = instance_id
         self.state = State.DEAD
+        if not os.path.exists(self.instance_dir):
+            raise OSError("Directory does not exist")
 
     @abc.abstractmethod
     def _start(self, gui=False):
@@ -54,6 +59,9 @@ class MachineInstance(object):
     @abc.abstractmethod
     def get_ip(self):
         """ Return the ip address of the machine, or None if it is not yet running """
+
+    def path(self):
+        return self.instance_dir
 
     def start(self, gui=False):
         self._start(gui)
@@ -122,7 +130,13 @@ class Hypervisor(object):
 
     def load(self, name):
         if os.path.exists(os.path.join(self.directory, name)):
-            return self.instance(self.directory, name)
+            try:
+                machine = self.instance(self.directory, name)
+            except OSError:
+                raise MachineDoesNotExist("Machine does not exist")
+            return machine
+        else:
+            raise MachineDoesNotExist("Machine does not exist")
 
     def get_instance_id(self, spec):
         today = datetime.datetime.now()
