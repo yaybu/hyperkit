@@ -7,8 +7,7 @@ setup(name='Hyperkit',
       version=version,
       url="http://yaybu.com/",
       description="Hypervisor tools",
-      long_description = open("README.rst").read() + "\n" + \
-                         open("CHANGES").read(),
+      long_description = open("README.rst").read(),
       author="Isotoma Limited",
       author_email="support@isotoma.com",
       license="Apache Software License",
@@ -23,6 +22,7 @@ setup(name='Hyperkit',
       install_requires=[
           'setuptools',
           'pyyaml',
+          'ipaddress',
       ],
       extras_require = {
           'test': ['unittest2', 'mock'],
