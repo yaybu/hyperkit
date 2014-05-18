@@ -9,11 +9,11 @@ from hyperkit import cloudinit
 class TestCloudConfig(unittest2.TestCase):
 
     def setUp(self):
-        self.auth = mock.MagicMock()
-        self.auth.username = "foo"
-        self.auth.password = "bar"
-        self.auth.public_key = None
-        self.c = cloudinit.CloudConfig(self.auth)
+        self.spec = mock.MagicMock()
+        self.spec.auth.username = "foo"
+        self.spec.auth.password = "bar"
+        self.spec.auth.public_key = None
+        self.c = cloudinit.CloudConfig(self.spec)
 
     def test_get_config(self):
         config = self.c.get_config()

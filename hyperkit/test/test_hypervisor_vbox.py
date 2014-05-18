@@ -4,6 +4,9 @@ import mock
 from hyperkit.hypervisor.command import Command
 from hyperkit.hypervisor import vbox
 
+from hyperkit.hypervisor import machine
+
+machine.MachineInstance.test_instance_dir = False
 
 class TestVBoxCommandIntegration(unittest2.TestCase):
 
@@ -12,7 +15,9 @@ class TestVBoxCommandIntegration(unittest2.TestCase):
 
     def setUp(self):
         Command.known_locations = ["/fake_bin"]
-        self.m = vbox.VBoxMachineInstance("/does_not_exist", "foo")
+        with mock.patch("os.path.exists") as m_exists:
+            m_exists.return_value = True
+            self.m = vbox.VBoxMachineInstance("/does_not_exist", "foo")
 
     def tearDown(self):
         Command.known_locations = ()
@@ -40,8 +45,10 @@ class TestVBoxCommandIntegration(unittest2.TestCase):
 class TestVBoxMachineInstance(unittest2.TestCase):
 
     def setUp(self):
-        self.m = vbox.VBoxMachineInstance("/does_not_exist", "foo")
-        self.m.vboxmanage = mock.MagicMock()
+        with mock.patch("os.path.exists") as m_exists:
+            m_exists.return_value = True
+            self.m = vbox.VBoxMachineInstance("/does_not_exist", "foo")
+            self.m.vboxmanage = mock.MagicMock()
 
     def test_start_gui(self):
         self.m._start(True)

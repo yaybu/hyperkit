@@ -34,7 +34,6 @@ class MachineInstance(object):
     __metaclass__ = abc.ABCMeta
 
     system = None
-
     timeout = 30
 
     def __init__(self, directory, instance_id):

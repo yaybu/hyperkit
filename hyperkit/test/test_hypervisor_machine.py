@@ -2,11 +2,11 @@
 import unittest2
 import mock
 import datetime
+import os
 
 from hyperkit.hypervisor import machine
 
 fixed_date = datetime.datetime(2001, 1, 1)
-
 
 class MockMachineInstance(machine.MachineInstance):
 
@@ -29,7 +29,9 @@ class MockMachineInstance(machine.MachineInstance):
 class TestMachineInstance(unittest2.TestCase):
 
     def setUp(self):
-        self.m = MockMachineInstance("/tmp", "foo")
+        with mock.patch("os.path.exists") as m_exists:
+            m_exists.return_value = True
+            self.m = MockMachineInstance("/tmp", "foo")
 
     def test_start(self):
         self.m.start(False)
@@ -102,8 +104,7 @@ class TestHypervisor(unittest2.TestCase):
         instance = self.hypervisor.load("foo")
         self.assertEqual(instance, self.hypervisor.instance("/fake_dir/foo"))
         m_exists.return_value = False
-        instance = self.hypervisor.load("foo")
-        self.assertTrue(instance is None)
+        self.assertRaises(machine.MachineDoesNotExist, self.hypervisor.load, "foo")
 
     @mock.patch("os.path.exists")
     @mock.patch("datetime.datetime")
