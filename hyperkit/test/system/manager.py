@@ -8,20 +8,18 @@ They will only work if you have all the moving parts available
 
 """
 
-import argparse
-import wingdbstub
 import datetime
 import os
 import time
 import subprocess
 import random
-import shutil
 import threading
+import sqlite3
+
+from . import sql
 
 
-
-
-class SystemTest:
+class SystemTestManager:
 
     timeout = 500
     systems = ["vbox", "vmware"]
@@ -36,20 +34,24 @@ class SystemTest:
         "architectures": ["x86", "x86_64"],
     }]
 
-    def __init__(self, vm_dir, report_dir, hypervisors, releases=()):
-        self.vm_dir = vm_dir
-        self.report_dir = report_dir
-        self.hypervisors = hypervisors
-        self.releases = releases
-        if self.releases:
-            for d, r, a in self.releases:
-                if not self.check_release(d, r, a):
-                    print "Bad release spec: %s/%s/%s" % (d, r, a)
-                    raise SystemExit
-        if not os.path.exists(report_dir):
-            os.mkdir(report_dir)
-        if not os.path.exists(vm_dir):
-            os.mkdir(vm_dir)
+    def __init__(self, directory):
+        self.directory = directory
+
+    @classmethod
+    def create(self, directory):
+        if not os.path.exists(directory):
+            os.mkdir(directory)
+        dbpath = os.path.join(directory, "test.db")
+        print "Creating test database", dbpath
+        db = sqlite3.connect(dbpath)
+        cur = db.cursor()
+        cur.executescript(sql.create)
+
+    def configure(self, hypervisors=(), releases=()):
+        for d, r, a in releases:
+            if not self.check_release(d, r, a):
+                print "Bad release spec: %s/%s/%s" % (d, r, a)
+                raise SystemExit
 
     def check_release(self, d, r, a):
         for e in self.distros:
@@ -133,7 +135,7 @@ class SystemTest:
                     release_start = time.time()
                     for arch in distro["architectures"]:
                         if self.should_test(system, distro['name'], release, arch):
-                            self.exec_test( system=system, distro=distro["name"], release=release, arch=arch)
+                            self.exec_test(system=system, distro=distro["name"], release=release, arch=arch)
                         else:
                             print "Skipping", system, distro['name'], release, arch
                     print "Release tested in %0.2fs" % (time.time() - release_start, )
@@ -180,14 +182,3 @@ class SystemTest:
     def analyze_image(self, system, path):
         """ Analyze a disk image """
         pass
-
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
-    parser.add_argument("-d", "--directory", default="/var/tmp/hyperkit_test", help="directory to put test vms in")
-    parser.add_argument("-o", "--output", default=os.path.realpath("test_reports"), help = "write test reports to this directory")
-    parser.add_argument("-H", "--hypervisor", choices = ("vmware", "vbox"), nargs="*", help="hypervisor to test (by default all present are tested)")
-    parser.add_argument("release", nargs="*", help="distro/release/architecture")
-    args = parser.parse_args()
-    release = [tuple(x.split("/", 2)) for x in args.release]
-    t = SystemTest(args.directory, args.output, args.hypervisor, release)
-    t.test_system()
