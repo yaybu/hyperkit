@@ -22,6 +22,11 @@ from hyperkit.spec import MachineSpec, PasswordAuth, SSHAuth, Hardware, Canonica
 from hyperkit.hypervisor import VirtualBox, VMWare
 from hyperkit.error import MachineDoesNotExist
 
+try:
+    from hyperkit.test.system import test_parser
+except ImportError:
+    test_parser = lambda x: None
+
 logger = logging.getLogger()
 
 
@@ -255,6 +260,8 @@ def main():
 
     net_show_parser = netsub.add_parser("show", help="Show the network configurations that will be used for virtual machines")
     net_show_parser.set_defaults(sub_func=net_show)
+
+    test_parser(sub)
 
     args = parser.parse_args()
 
