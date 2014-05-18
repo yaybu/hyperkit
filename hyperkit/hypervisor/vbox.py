@@ -65,11 +65,16 @@ class VBoxMachineInstance(MachineInstance):
 
 
 class VBoxCloudConfig(CloudConfig):
-    runcmd = [
-        ['mount', '/dev/sr1', '/mnt'],
-        ['/mnt/VBoxLinuxAdditions.run'],
-        ['umount', '/mnt'],
-    ]
+
+    @property
+    def runcmd(self):
+        return [
+            ['mount', '/dev/sr1', '/mnt'],
+            ['/mnt/VBoxLinuxAdditions.run'],
+            ['umount', '/mnt'],
+            ['usermod', '-a', '-G', 'vboxsf', self.username],
+            ['ln', '-s', '/media/sf_hyperkit', '/hyperkit']
+        ]
 
 
 class VBoxUbuntuCloudConfig(VBoxCloudConfig):
@@ -238,6 +243,10 @@ class VirtualBox(Hypervisor):
         self.vboxmanage("attach_ide", name=instance_id, port="0", device="0", filename=seed.pathname)
         self.vboxmanage("attach_ide", name=instance_id, port="0", device="1", filename="/usr/share/virtualbox/VBoxGuestAdditions.iso")
         logger.info("Machine created")
+
+        logger.info("Mounting host drive")
+        hostpath = os.path.expanduser("~")
+        self.vboxmanage("mount", name=instance_id, hostpath=hostpath)
         return self.load(instance_id)
 
 __all__ = [VirtualBox]

@@ -59,4 +59,9 @@ class VBoxManage(command.Command):
 
         "list_hostonlyifs": ["list", "hostonlyifs"],
 
+        "mount": ["sharedfolder", "add", "{name}",
+                  "--name", "hyperkit",
+                  "--hostpath", "{hostpath}",
+                  "--automount"],
+
     }
