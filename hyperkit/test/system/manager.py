@@ -21,8 +21,9 @@ from . import sql
 
 class SystemTestManager:
 
+    db_name = "test.db"
     timeout = 500
-    systems = ["vbox", "vmware"]
+    hypervisors = ["vbox", "vmware"]
 
     distros = [{
         "name": "ubuntu",
@@ -35,17 +36,41 @@ class SystemTestManager:
     }]
 
     def __init__(self, directory):
+        dbpath = os.path.join(directory, self.db_name)
         self.directory = directory
+        self.db = sqlite3.connect(dbpath)
+
+    def set_hypervisors(self, hypervisors):
+        c = self.cursor
+        c.execute("delete from hypervisor")
+        for h in hypervisors:
+            c.execute(sql.hypervisor_insert, [h])
+        self.db.commit()
+
+    @property
+    def cursor(self):
+        return self.db.cursor()
 
     @classmethod
     def create(self, directory):
         if not os.path.exists(directory):
             os.mkdir(directory)
-        dbpath = os.path.join(directory, "test.db")
+        dbpath = os.path.join(directory, self.db_name)
         print "Creating test database", dbpath
         db = sqlite3.connect(dbpath)
         cur = db.cursor()
         cur.executescript(sql.create)
+        m = self(directory)
+        m.set_hypervisors(self.hypervisors)
+        c = m.cursor
+        for d in m.distros:
+            distro = d['name']
+            c.execute(sql.distro_insert, [distro])
+            for r in d['releases']:
+                c.execute(sql.release_insert, (r, distro))
+            for a in d['architectures']:
+                c.execute(sql.architecture_insert, (a, distro))
+        m.db.commit()
 
     def configure(self, hypervisors=(), releases=()):
         for d, r, a in releases:
@@ -127,7 +152,7 @@ class SystemTestManager:
         self.rundir = os.path.join(self.report_dir, self.run)
         os.mkdir(self.rundir)
         start = time.time()
-        for system in self.systems:
+        for system in self.hypervisors:
             system_start = time.time()
             for distro in self.distros:
                 distro_start = time.time()

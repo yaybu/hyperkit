@@ -12,10 +12,10 @@ def run_setup(args):
 
 
 def run_config(args):
-    pass
-    #release = [tuple(x.split("/", 2)) for x in args.release]
-    #t = SystemTestManager(args.directory, args.output, args.hypervisor, release)
-    #t.test_system()
+    release = [tuple(x.split("/", 2)) for x in args.release]
+    m = manager.SystemTestManager(args.directory)
+    m.set_hypervisors(args.hypervisor)
+    m.set_releases(release)
 
 
 def run_execute(args):
