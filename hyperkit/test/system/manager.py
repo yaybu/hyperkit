@@ -21,7 +21,7 @@ from . import sql
 
 class SystemTestManager:
 
-    db_name = "test.db"
+    db_name = "hyperkit.sqlite"
     timeout = 500
     hypervisors = ["vbox", "vmware"]
 
@@ -37,6 +37,9 @@ class SystemTestManager:
 
     def __init__(self, directory):
         dbpath = os.path.join(directory, self.db_name)
+        if not os.path.exists(dbpath):
+            print "Database %s does not exist - have you specified the test directory?" % dbpath
+            raise SystemExit
         self.directory = directory
         self.db = sqlite3.connect(dbpath)
 
@@ -45,6 +48,13 @@ class SystemTestManager:
         c.execute("delete from hypervisor")
         for h in hypervisors:
             c.execute(sql.hypervisor_insert, [h])
+        self.db.commit()
+
+    def set_releases(self, releases):
+        c = self.cursor
+        c.execute("delete from candidate")
+        for d, r, a in releases:
+            c.execute(sql.candidate_insert, [d, r, a])
         self.db.commit()
 
     @property
@@ -70,6 +80,8 @@ class SystemTestManager:
                 c.execute(sql.release_insert, (r, distro))
             for a in d['architectures']:
                 c.execute(sql.architecture_insert, (a, distro))
+                for r in d['releases']:
+                    c.execute(sql.candidate_insert, (distro, r, a))
         m.db.commit()
 
     def configure(self, hypervisors=(), releases=()):

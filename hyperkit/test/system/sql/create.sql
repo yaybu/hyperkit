@@ -22,6 +22,14 @@ create table hypervisor (
     name text not null
 );
 
+create table candidate (
+    distro text not null,
+    release text not null,
+    architecture text not null,
+    foreign key(release, distro) references release(name, distro),
+    foreign key(architecture, distro) references architecture(name, distro)
+);
+
 create table test_run (
     id int not null,
     hypervisor text not null,

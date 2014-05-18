@@ -208,7 +208,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("-q", "--quiet", default=False, action="store_true", help="produce no output unless there is an error")
     parser.add_argument("-d", "--debug", default=False, action="store_true", help="produce lots of output")
-    parser.add_argument("-H", "--hypervisor", help="The name of the hypervisor layer to use", choices=["vmware", "vbox"])
+    parser.add_argument("-H", "--hypervisor", help="The name of the hypervisor layer to use", choices=["vmware", "vbox"], default=())
     parser.add_argument("-D", "--directory", default=None, help="The directory the VM resides in, if different from the hypervisor default")
     sub = parser.add_subparsers()
 

@@ -38,7 +38,7 @@ def test_parser(sub):
     config_parser.add_argument("directory", help="directory containing test state")
     config_parser.add_argument("release", nargs="*", help="distro/release/architecture")
     config_parser.add_argument("-o", "--output", default=os.path.realpath("test_reports"), help="write test reports and database to this directory")
-    config_parser.add_argument("-H", "--hypervisor", choices=("vmware", "vbox"), nargs="*", help="hypervisor to test (by default all present are tested)")
+    config_parser.add_argument("-H", "--hypervisor", default=(), choices=("vmware", "vbox"), nargs="*", help="hypervisor to test (by default all present are tested)")
     config_parser.set_defaults(sub_func=run_config)
 
     execute_parser = ts.add_parser("run", help="run the tests")
