@@ -4,9 +4,6 @@ import mock
 from hyperkit.hypervisor.command import Command
 from hyperkit.hypervisor import vbox
 
-from hyperkit.hypervisor import machine
-
-machine.MachineInstance.test_instance_dir = False
 
 class TestVBoxCommandIntegration(unittest2.TestCase):
 

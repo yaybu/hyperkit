@@ -2,11 +2,11 @@
 import unittest2
 import mock
 import datetime
-import os
 
 from hyperkit.hypervisor import machine
 
 fixed_date = datetime.datetime(2001, 1, 1)
+
 
 class MockMachineInstance(machine.MachineInstance):
 
