@@ -26,22 +26,28 @@ def run_run(args):
         print json.dumps(r)
     else:
         for stage, results in r.items():
-            print stage
-            print "=" * len(stage)
-            print
-            print "Return value", results['code']
-            if results['stdout']:
+            if stage == 'analysis':
+                print "Analysis"
+                print "--------"
                 print
-                print "Standard output"
-                print "---------------"
+                print results
+            else:
+                print stage
+                print "=" * len(stage)
                 print
-                print results['stdout']
-            if results['stderr']:
-                print
-                print "Standard error"
-                print "--------------"
-                print
-                print results['stderr']
+                print "Return value", results['code']
+                if results['stdout']:
+                    print
+                    print "Standard output"
+                    print "---------------"
+                    print
+                    print results['stdout']
+                if results['stderr']:
+                    print
+                    print "Standard error"
+                    print "--------------"
+                    print
+                    print results['stderr']
 
 
 def run_start(args):

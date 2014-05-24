@@ -8,6 +8,7 @@ They will only work if you have all the moving parts available
 
 """
 
+import guestfs
 import os
 import time
 import subprocess
@@ -34,6 +35,7 @@ class SystemTestManager:
     }]
 
     def __init__(self, directory):
+        directory = os.path.realpath(directory)
         dbpath = os.path.join(directory, self.db_name)
         if not os.path.exists(dbpath):
             print "Database %s does not exist - have you specified the test directory?" % dbpath
@@ -154,7 +156,7 @@ class SystemTestManager:
         # actually wait for it to stop
         time.sleep(10)
 
-        results["analysis"] = self.analyze_image(hypervisor, path)
+        results["analysis"] = self.analyze_image(hypervisor, name)
         self.cleanup(hypervisor, name)
         return results
 
@@ -163,4 +165,14 @@ class SystemTestManager:
 
     def analyze_image(self, hypervisor, name):
         """ Analyze a disk image """
-        pass
+        disk_name = name + "_disk1.vdi"
+        disk_path = os.path.join(self.directory, name, disk_name)
+
+        g = guestfs.GuestFS(python_return_dict=True)
+        g.add_drive_opts(disk_path, readonly=1)
+        g.launch()
+        assert (g.list_partitions() == ["/dev/sda1"])
+        g.mount_ro("/dev/sda1", "/")
+        hosts = g.read_file("/etc/hosts")
+        g.shutdown()
+        return hosts
