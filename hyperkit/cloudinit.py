@@ -29,7 +29,9 @@ logger = logging.getLogger(__name__)
 class GenIsoImage(Command):
     command_name = "genisoimage"
     subcommands = {
-        "generate": ["-output", "{pathname}", "-volid", "cidata", "-joliet", "-rock"],
+        "generate": ["-output", "{pathname}",
+                     "-volid", "cidata",
+                     "-joliet", "-rock"],
     }
     log_execution = True
 
@@ -154,7 +156,7 @@ class Seed:
 
     @property
     def pathname(self):
-        return os.path.join(self.directory, self.seed_file_name)
+        return os.path.realpath(os.path.join(self.directory, self.seed_file_name))
 
     @property
     def filenames(self):

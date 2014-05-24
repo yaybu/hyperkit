@@ -21,6 +21,7 @@ import ipaddress
 from hyperkit.cloudinit import CloudConfig, Seed, MetaData
 from .machine import MachineInstance, Hypervisor
 from .vboxmanage import VBoxManage
+from .command import CommandException
 from .qemu_img import QEmuImg
 
 logger = logging.getLogger(__name__)
@@ -195,6 +196,23 @@ class VirtualBox(Hypervisor):
     @property
     def present(self):
         return self.vboxmanage.pathname is not None
+
+    def cleanup(self, name):
+        v = VBoxManage()
+        path = os.path.join(self.directory, name)
+        if os.path.exists(path):
+            logger.info("Shutting down virtual machine")
+            try:
+                v("controlvm", name=name, button="poweroff")
+            except CommandException:
+                pass
+            logger.info("Unregistering virtual machine")
+            try:
+                v("unregistervm", name=name)
+            except CommandException:
+                pass
+            logger.info("Deleting remaining files")
+            shutil.rmtree(path)
 
     def guess_network(self):
         """ Return a Network object that represents networking configuration for the hypervisor """

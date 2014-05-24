@@ -31,7 +31,7 @@ logger = logging.getLogger()
 
 
 def guess_hypervisor(args):
-    if args.hypervisor is not None:
+    if args.hypervisor:
         hypervisor = {"vbox": VirtualBox, "vmware": VMWare}.get(args.hypervisor, None)
         if hypervisor is None:
             print >> sys.stderr, "Specified hypervisor is not valid"
@@ -170,6 +170,55 @@ def destroy(args):
     logging.info("Machine destroyed")
 
 
+def confirm(prompt=None, resp=False):
+    """prompts for yes or no response from the user. Returns True for yes and
+    False for no.
+
+    'resp' should be set to the default value assumed by the caller when
+    user simply types ENTER.
+
+    >>> confirm(prompt='Create Directory?', resp=True)
+    Create Directory? [y]|n:
+    True
+    >>> confirm(prompt='Create Directory?', resp=False)
+    Create Directory? [n]|y:
+    False
+    >>> confirm(prompt='Create Directory?', resp=False)
+    Create Directory? [n]|y: y
+    True
+
+    """
+
+    if prompt is None:
+        prompt = 'Confirm'
+
+    if resp:
+        prompt = '%s [%s]|%s: ' % (prompt, 'y', 'n')
+    else:
+        prompt = '%s [%s]|%s: ' % (prompt, 'n', 'y')
+
+    while True:
+        ans = raw_input(prompt)
+        if not ans:
+            return resp
+        if ans not in ['y', 'Y', 'n', 'N']:
+            print 'please enter y or n.'
+            continue
+        if ans == 'y' or ans == 'Y':
+            return True
+        if ans == 'n' or ans == 'N':
+            return False
+
+
+def cleanup(args):
+    if not args.yes:
+        c = confirm("Are you sure?")
+        if not c:
+            raise SystemExit
+    hypervisor = make_hypervisor(args)
+    hypervisor.cleanup(args.name)
+
+
 def ip(args):
     hypervisor = make_hypervisor(args)
     vm = hypervisor.load(args.name)
@@ -241,6 +290,11 @@ def main():
     destroy_parser = sub.add_parser("destroy", help="Destroy a named virtual machine")
     destroy_parser.add_argument("name", help="The name of the virtual machine as passed to create")
     destroy_parser.set_defaults(func=destroy)
+
+    cleanup_parser = sub.add_parser("cleanup", help="do whatever is necessary to obliterate a virtual machine")
+    cleanup_parser.add_argument("--yes", action="store_true", help="don't ask for confirmation")
+    cleanup_parser.add_argument("name", help="The name of the virtual machine as passed to create")
+    cleanup_parser.set_defaults(func=cleanup)
 
     ip_parser = sub.add_parser("ip", help="Print the IP address of the virtual machine, if available")
     ip_parser.add_argument("name", help="The name of the virtual machine as passed to create")

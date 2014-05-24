@@ -8,11 +8,9 @@ They will only work if you have all the moving parts available
 
 """
 
-import datetime
 import os
 import time
 import subprocess
-import random
 import threading
 import sqlite3
 
@@ -51,6 +49,10 @@ class SystemTestManager:
         self.db.commit()
 
     def set_releases(self, releases):
+        for r in releases:
+            if not self.check_release(*r):
+                print "Bad release spec:", r
+                raise SystemExit
         c = self.cursor
         c.execute("delete from candidate")
         for d, r, a in releases:
@@ -84,20 +86,14 @@ class SystemTestManager:
                     c.execute(sql.candidate_insert, (distro, r, a))
         m.db.commit()
 
-    def configure(self, hypervisors=(), releases=()):
-        for d, r, a in releases:
-            if not self.check_release(d, r, a):
-                print "Bad release spec: %s/%s/%s" % (d, r, a)
-                raise SystemExit
-
-    def check_release(self, d, r, a):
+    def check_release(self, distro, release=None, architecture=None):
         for e in self.distros:
-            if e['name'] == d:
-                if r not in e['releases']:
-                    print "Release", r, "not recognised for distro", d
+            if e['name'] == distro:
+                if release not in e['releases']:
+                    print "Release", release, "not recognised for distro", distro
                     return False
-                if a not in e['architectures']:
-                    print "Architecture", a, "not recognised for distro", d
+                if architecture not in e['architectures']:
+                    print "Architecture", architecture, "not recognised for distro", distro
                     return False
                 return True
         return False
@@ -109,7 +105,7 @@ class SystemTestManager:
             return False
         return True
 
-    def killkillkill(self, p):
+    def terminate(self, p):
         if p.poll() is None:
             print "Process taking too long, terminating"
             try:
@@ -118,10 +114,10 @@ class SystemTestManager:
                 # ignore race condition
                 pass
 
-    def hyperkit(self, hypervisor, command, args):
+    def hyperkit(self, command, hypervisor, args):
         command = ["hyperkit",
                    "--debug",
-                   "--directory", self.vm_dir,
+                   "--directory", self.directory,
                    "--hypervisor", hypervisor,
                    command,
                    ] + args
@@ -130,92 +126,41 @@ class SystemTestManager:
         p = subprocess.Popen(command,
                              stdout=subprocess.PIPE,
                              stderr=subprocess.PIPE)
-        th = threading.Timer(self.timeout, self.killkillkill, [p])
+        th = threading.Timer(self.timeout, self.terminate, [p])
         th.start()
         stdout, stderr = p.communicate()
         th.cancel()
         print "Command completed in %0.2fs" % (time.time() - t)
-        #for l in stderr.splitlines():
-        #    print l
         return dict(stdout=stdout, stderr=stderr, code=p.returncode)
 
-    def generate_name(self):
-        def rndchr():
-            for i in range(10):
-                yield chr(65 + random.randint(0, 25))
-        return "".join(rndchr())
+    def exec_test(self, hypervisor, distro, release, arch):
+        instance = "-".join([hypervisor, distro, release, arch])
+        name = "system_test-" + instance
+        results = {}
 
-    def test_system(self):
-        print "Running system tests"
-        print "Creating virtual machines in", self.vm_dir
-        print "Writing reports to", self.report_dir
-        if self.hypervisors:
-            print "Limiting tests to only hypervisors:", self.hypervisors
-        else:
-            print "Testing all hypervisors"
-        if self.releases:
-            print "Limiting tests to only the following releases:"
-            for d, r, a in self.releases:
-                print "    Distro:", d, "Release:", r, "Arch:", a
-        else:
-            print "Testing all systems"
-        d = datetime.datetime.now()
-        self.run = "%04d-%02d-%02d-%010d" % (d.year, d.month, d.year, time.time())
-        self.rundir = os.path.join(self.report_dir, self.run)
-        os.mkdir(self.rundir)
-        start = time.time()
-        for system in self.hypervisors:
-            system_start = time.time()
-            for distro in self.distros:
-                distro_start = time.time()
-                for release in distro["releases"]:
-                    release_start = time.time()
-                    for arch in distro["architectures"]:
-                        if self.should_test(system, distro['name'], release, arch):
-                            self.exec_test(system=system, distro=distro["name"], release=release, arch=arch)
-                        else:
-                            print "Skipping", system, distro['name'], release, arch
-                    print "Release tested in %0.2fs" % (time.time() - release_start, )
-                print "Distro tested in %0.2fs" % (time.time() - distro_start, )
-            print "System tested in %0.2fs" % (time.time() - system_start, )
-        print "Tests completed in %0.2fs" % (time.time() - start, )
+        path = os.path.join(self.directory, name)
+        if os.path.exists(path):
+            raise KeyError("Path %r already exists" % path)
 
-    def exec_test(self, system, distro, release, arch):
-        print "Testing", system, distro, release, arch
-        name = self.generate_name()
-        print "Creating virtual machine", name
-        instance = "-".join([system, distro, release, arch])
-
-        def run(command, args):
-            r = self.hyperkit(system, command, args)
-            for key, value in r.items():
-                lf = open(os.path.join(self.rundir, "%s.%s.%s" % (instance, command, key)), "w")
-                lf.write(str(value))
+        for stage in ["create", "start", "wait", "stop"]:
+            args = [name, distro, release, arch] if stage == "create" else [name]
+            r = self.hyperkit(stage, hypervisor, args)
+            results[stage] = r
             if r['code'] != 0:
-                raise OSError(r)
-            return r['stdout']
+                results['failed_at'] = stage
+                self.cleanup(hypervisor, name)
+                return results
 
-        try:
-            run("create", [name, distro, release, arch])
-        except OSError:
-            print "Could not create VM"
-            return
-        try:
-            path = run("path", [name])
-            run("start", [name])
-            run("wait", [name])
-        except OSError:
-            print "VM starting failed, will try to stop and destroy"
-        try:
-            run("stop", [name])
-            # stopping takes time
-            time.sleep(10)
-        except OSError:
-            print "VM Stopping failed, will try to destroy anyway"
-        finally:
-            self.analyze_image(system, path)
-        run("destroy", [name])
+        # actually wait for it to stop
+        time.sleep(10)
 
-    def analyze_image(self, system, path):
+        results["analysis"] = self.analyze_image(hypervisor, path)
+        self.cleanup(hypervisor, name)
+        return results
+
+    def cleanup(self, hypervisor, name):
+        self.hyperkit("cleanup", hypervisor, ["--yes", name])
+
+    def analyze_image(self, hypervisor, name):
         """ Analyze a disk image """
         pass
