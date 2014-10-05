@@ -27,6 +27,34 @@ class HyperkitTestError(Exception):
 class TestRunFailed(Exception):
     pass
 
+class GuestAnalysis(object):
+
+    def __init__(self, test_run):
+        self.test_run = test_run
+
+    def __enter__(self):
+        disk_name = self.test_run.name + "_disk1.vdi"  # conditional on hypervisor
+        disk_path = os.path.join(self.test_run.directory, self.test_run.name, disk_name)
+        self.guest = guestfs.GuestFS(python_return_dict=True)
+        self.guest.add_drive_opts(disk_path, readonly=1)
+        self.guest.launch()
+        self.guest.mount_ro("/dev/sda1", "/")
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        self.guest.shutdown()
+
+    def analyse(self):
+        """ Analyze a disk image """
+        loader = unittest2.TestLoader()
+        # yes this is horrific. i will fix it at some point.
+        core.guest = self.guest
+        suite = loader.loadTestsFromModule(core)
+        results = StringIO.StringIO()
+        unittest2.TextTestRunner(stream=results, verbosity=2).run(suite)
+        return results.getvalue()
+
+
 class TestRun(object):
 
     timeout = 120
@@ -50,8 +78,6 @@ class TestRun(object):
         self.stop_timer()
         self.terminate()
         self.cleanup()
-        if self.guest is not None:
-            self.guest.shutdown()
 
     @property
     def username(self):
@@ -146,24 +172,9 @@ class TestRun(object):
         print "Command completed in %0.2fs" % (time.time() - t)
         return dict(stdout=stdout, stderr=stderr, code=return_code)
 
-    def mount_guest(self):
-        disk_name = self.name + "_disk1.vdi"  # conditional on hypervisor
-        disk_path = os.path.join(self.directory, self.name, disk_name)
-        self.guest = guestfs.GuestFS(python_return_dict=True)
-        self.guest.add_drive_opts(disk_path, readonly=1)
-        self.guest.launch()
-        self.guest.mount_ro("/dev/sda1", "/")
-
     def analyse(self):
-        """ Analyze a disk image """
-        self.mount_guest()
-        loader = unittest2.TestLoader()
-        # yes this is horrific. i will fix it at some point.
-        core.guest = self.guest
-        suite = loader.loadTestsFromModule(core)
-        results = StringIO.StringIO()
-        unittest2.TextTestRunner(stream=results, verbosity=2).run(suite)
-        self.results["analysis"] = results.getvalue()
+        with GuestAnalysis(self) as analyser:
+            self.results['analysis'] = analyser.analyse()
 
 class SystemTestManager:
 
