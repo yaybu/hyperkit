@@ -19,13 +19,15 @@ import StringIO
 
 from . import core
 from . import sql
-from . import monitor
+
 
 class HyperkitTestError(Exception):
     pass
 
+
 class TestRunFailed(Exception):
     pass
+
 
 class GuestAnalysis(object):
 
@@ -97,7 +99,7 @@ class TestRun(object):
 
     @property
     def public_key(self):
-        keyname = os.path.join(self.directory, self.name +".ssh_key")
+        keyname = os.path.join(self.directory, self.name + ".ssh_key")
         if not os.path.exists(keyname):
             print >> open(keyname, "w"), "FAKE PUBLIC KEY"
         return keyname
@@ -175,6 +177,7 @@ class TestRun(object):
     def analyse(self):
         with GuestAnalysis(self) as analyser:
             self.results['analysis'] = analyser.analyse()
+
 
 class SystemTestManager:
 

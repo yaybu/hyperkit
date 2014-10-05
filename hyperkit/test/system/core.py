@@ -4,6 +4,7 @@ import unittest2
 # because I can't find a neat way to do this
 guest = None
 
+
 class Core(unittest2.TestCase):
 
     def test_hosts(self):
@@ -24,5 +25,3 @@ class Core(unittest2.TestCase):
 
     def test_network(self):
         raise NotImplemented
-
-
