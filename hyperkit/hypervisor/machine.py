@@ -115,7 +115,7 @@ class Hypervisor(object):
         self.image_dir = os.path.expanduser(image_dir)
 
     @abc.abstractmethod
-    def create(self, spec, image_dir="~/.hyperkit"):
+    def create(self, spec, force_cache=False, image_dir="~/.hyperkit"):
         """ Builds the instance based on the spec, loading images from
         image_dir. Return the instance, for example with self.load(name) """
 

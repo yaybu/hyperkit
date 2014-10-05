@@ -130,22 +130,14 @@ class CanonicalImage(Image):
             raise error.DistributionNotKnown()
         return c
 
-    def fetch(self, image_dir):
-        """ Fetches the specified uri into the cache and then extracts it
-        into the library.  If name is None then a name is made up.
-
-        Arguments:
-            distro: the name of the distribution, i.e. Ubuntu, Fedora
-            release: the distribution's name for the release, i.e. 12.04
-            arch: the distribution's name for the architecture, i.e. x86_64, amd64
-            format: the format of virtual machine image required, i.e. vmdk, qcow
-        """
+    def fetch(self, image_dir, force_cache=False):
         if not os.path.exists(image_dir):
             os.mkdir(image_dir)
         pathname = os.path.join(image_dir, "{0}-{1}-{2}.qcow2".format(self.distro, self.release, self.arch))
-        klass = self.distro_class()
-        distro = klass(pathname, self.release, self.arch)
-        distro.update()
+        if not force_cache:
+            klass = self.distro_class()
+            distro = klass(pathname, self.release, self.arch)
+            distro.update()
         return pathname
 
 __all__ = [LiteralImage, CanonicalImage]

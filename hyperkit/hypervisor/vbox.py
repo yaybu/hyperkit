@@ -225,7 +225,7 @@ class VirtualBox(Hypervisor):
         else:
             return NewHostOnlyNetwork()
 
-    def create(self, spec):
+    def create(self, spec, force_cache):
         """ Create a new virtual machine in the specified directory from the base image. """
 
         instance_id = self.get_instance_id(spec)
@@ -243,7 +243,7 @@ class VirtualBox(Hypervisor):
         logger.info("Creating disk image from %s" % (spec.image, ))
         # create the disk image and attach it
         disk = os.path.join(instance_dir, instance_id + "_disk1.vdi")
-        self.qemu_img("convert", source=spec.image.fetch(self.image_dir), destination=disk, format="vdi")
+        self.qemu_img("convert", source=spec.image.fetch(self.image_dir, force_cache), destination=disk, format="vdi")
         self.vboxmanage("create_sata", name=instance_id)
         self.vboxmanage("attach_disk", name=instance_id, disk=disk)
 

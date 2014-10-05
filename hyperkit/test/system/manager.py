@@ -8,14 +8,42 @@ They will only work if you have all the moving parts available
 
 """
 
+import unittest2
 import guestfs
 import os
 import time
 import subprocess
 import threading
 import sqlite3
+import StringIO
 
+from . import core
 from . import sql
+from . import monitor
+
+class HyperkitTestError(Exception):
+    pass
+
+class GuestManager:
+
+    def __init__(self, hypervisor, disk_path, debug = False):
+        self.debug = debug
+        #disk_name = name + "_disk1.vdi"
+        #self.disk_path = os.path.join(directory, name, disk_name)
+        self.disk_path = disk_path
+        self.guest = guestfs.GuestFS(python_return_dict=True)
+        self.guest.add_drive_opts(self.disk_path, readonly=1)
+
+    def close(self):
+        self.guest.close()
+
+    def mount(self):
+        self.guest.launch()
+        self.guest.mount_ro("/dev/sda1", "/")
+
+    def unmount(self):
+        self.guest.umount_all()
+        self.guest.shutdown()
 
 
 class SystemTestManager:
@@ -42,6 +70,7 @@ class SystemTestManager:
             raise SystemExit
         self.directory = directory
         self.db = sqlite3.connect(dbpath)
+        self.executing = None
 
     def set_hypervisors(self, hypervisors):
         c = self.cursor
@@ -107,11 +136,11 @@ class SystemTestManager:
             return False
         return True
 
-    def terminate(self, p):
-        if p.poll() is None:
-            print "Process taking too long, terminating"
+    def terminate(self):
+        if self.executing.poll() is None:
+            print "Test taking too long, terminating running process"
             try:
-                p.kill()
+                self.executing.kill()
             except:
                 # ignore race condition
                 pass
@@ -125,17 +154,23 @@ class SystemTestManager:
                    ] + args
         print "Executing", " ".join(command)
         t = time.time()
-        p = subprocess.Popen(command,
-                             stdout=subprocess.PIPE,
-                             stderr=subprocess.PIPE)
-        th = threading.Timer(self.timeout, self.terminate, [p])
-        th.start()
-        stdout, stderr = p.communicate()
-        th.cancel()
+        self.executing = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        stdout, stderr = self.executing.communicate()
+        return_code = self.executing.returncode
+        self.executing = None
         print "Command completed in %0.2fs" % (time.time() - t)
-        return dict(stdout=stdout, stderr=stderr, code=p.returncode)
+        return dict(stdout=stdout, stderr=stderr, code=return_code)
+
+    def test_kernel_permissions(self):
+        p = subprocess.Popen(["uname", "-r"], stdout=subprocess.PIPE)
+        release = p.stdout.read().strip()
+        kernel = "/boot/vmlinuz-%s" % release
+        if not os.access(kernel, os.R_OK):
+            raise HyperkitTestError("Cannot read kernel %s. You need to chmod +r this file." % kernel)
+
 
     def exec_test(self, hypervisor, distro, release, arch):
+        self.test_kernel_permissions()
         instance = "-".join([hypervisor, distro, release, arch])
         name = "system_test-" + instance
         results = {}
@@ -144,17 +179,39 @@ class SystemTestManager:
         if os.path.exists(path):
             raise KeyError("Path %r already exists" % path)
 
-        for stage in ["create", "start", "wait", "stop"]:
-            args = [name, distro, release, arch] if stage == "create" else [name]
-            r = self.hyperkit(stage, hypervisor, args)
+        r = self.hyperkit("create", hypervisor, ["--password", "password", name, distro, release, arch])
+        results['create'] = r
+        if r['code'] != 0:
+            self.cleanup(hypervisor, name)
+            return results
+
+        g = GuestManager(hypervisor, self.directory, name)
+
+        start_time = time.time()
+        timer = threading.Timer(self.timeout, self.terminate)
+        timer.start()
+
+        log_monitor = monitor.LogMonitor(g)
+        log_monitor.start()
+
+        #stages = ["start", "wait", "stop"]
+        stages = ["wait"]
+
+        for stage in stages:
+            r = self.hyperkit(stage, hypervisor, [name])
             results[stage] = r
             if r['code'] != 0:
                 results['failed_at'] = stage
                 self.cleanup(hypervisor, name)
+                timer.cancel()
                 return results
 
+        timer.cancel()
+
         # actually wait for it to stop
-        time.sleep(10)
+        time.sleep(1000)
+
+        log_monitor.stop()
 
         results["analysis"] = self.analyze_image(hypervisor, name)
         self.cleanup(hypervisor, name)
@@ -165,14 +222,9 @@ class SystemTestManager:
 
     def analyze_image(self, hypervisor, name):
         """ Analyze a disk image """
-        disk_name = name + "_disk1.vdi"
-        disk_path = os.path.join(self.directory, name, disk_name)
-
-        g = guestfs.GuestFS(python_return_dict=True)
-        g.add_drive_opts(disk_path, readonly=1)
-        g.launch()
-        assert (g.list_partitions() == ["/dev/sda1"])
-        g.mount_ro("/dev/sda1", "/")
-        hosts = g.read_file("/etc/hosts")
+        loader = unittest2.TestLoader()
+        suite = loader.loadTestsFromModule(core)
+        results = StringIO.StringIO()
+        unittest2.TextTestRunner(stream=results, verbosity=2).run(suite)
         g.shutdown()
-        return hosts
+        return results.getvalue()

@@ -138,7 +138,7 @@ def create(args):
     logging.info("    base image: %s" % spec.image)
     logging.info("    hardware: %s" % spec.hardware)
 
-    vm = hypervisor.create(spec)
+    vm = hypervisor.create(spec, args.force_cache)
     logging.info("You can start this machine with: hyperkit -H %s start %s" % (hypervisor.hypervisor_id, vm.instance_id, ))
 
 
@@ -274,6 +274,7 @@ def main():
     create_parser.add_argument("--cpus", default="1", help="The number of cpus for the new virtual machine")
     create_parser.add_argument("--image", help="A file path or url to an image to use instead of the distro's default")
     create_parser.add_argument("--options", help="hypervisor specific options to pass to the new VM")
+    create_parser.add_argument("--force-cache", default=False, action="store_true", help="do not try to download a new distro image")
     create_parser.set_defaults(func=create)
 
     start_parser = sub.add_parser("start", help="Start a named virtual machine")
