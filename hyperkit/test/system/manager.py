@@ -24,10 +24,141 @@ from . import monitor
 class HyperkitTestError(Exception):
     pass
 
+class TestRunFailed(Exception):
+    pass
+
+class TestRun(object):
+
+    timeout = 500
+
+    def __init__(self, directory, hypervisor, distro, release, arch):
+        self.directory = directory
+        self.hypervisor = hypervisor
+        self.distro = distro
+        self.release = release
+        self.arch = arch
+        self.results = {}
+        self.executing = None
+
+    @property
+    def username(self):
+        return "XXusernameXX"
+
+    @property
+    def password(self):
+        return "XXpasswordXX"
+
+    @property
+    def instance(self):
+        return "-".join([self.hypervisor, self.distro, self.release, self.arch])
+
+    @property
+    def name(self):
+        return "system_test-" + self.instance
+
+    @property
+    def public_key(self):
+        keyname = os.path.join(self.directory, self.name +".ssh_key")
+        if not os.path.exists(keyname):
+            print >> open(keyname, "w"), "FAKE PUBLIC KEY"
+        return keyname
+
+    @property
+    def path(self):
+        return os.path.join(self.directory, self.name)
+
+    def create(self):
+        if os.path.exists(self.path):
+            raise KeyError("Path %r already exists" % self.path)
+        args = [
+            "--username", self.username,
+            "--password", self.password,
+            #"--public-key", self.public_key,
+            self.name, self.distro, self.release, self.arch
+        ]
+        r = self.hyperkit("create", args)
+        self.results['create'] = r
+        if r['code'] != 0:
+            self.cleanup()
+            raise TestRunFailed
+
+    def cleanup(self):
+        self.hyperkit("cleanup", ["--yes", self.name])
+
+    def terminate(self):
+        if self.executing.poll() is None:
+            print "Test taking too long, terminating running process"
+            try:
+                self.executing.kill()
+            except:
+                # ignore race condition
+                pass
+
+    def start_timer(self):
+        self.start_time = time.time()
+        self.timer = threading.Timer(self.timeout, self.terminate)
+        self.timer.start()
+
+    def stop_timer(self):
+        self.timer.cancel()
+
+    def run(self):
+        self.start_timer()
+        stages = ["start", "wait", "stop"]
+        for stage in stages:
+            r = self.hyperkit(stage, [self.name])
+            self.results[stage] = r
+            if r['code'] != 0:
+                self.results['failed_at'] = stage
+                self.cleanup()
+                self.stop_timer()
+                raise TestRunFailed
+        self.stop_timer()
+        self.results["analysis"] = self.analyze_image()
+        self.cleanup()
+
+    def hyperkit(self, command, args):
+        command = ["hyperkit",
+                   "--debug",
+                   "--directory", self.directory,
+                   "--hypervisor", self.hypervisor,
+                   command,
+                   ] + args
+        print "Executing", " ".join(command)
+        t = time.time()
+        self.executing = subprocess.Popen(command,
+                                          stdout=subprocess.PIPE,
+                                          stderr=subprocess.PIPE)
+        stdout, stderr = self.executing.communicate()
+        return_code = self.executing.returncode
+        self.executing = None
+        print "Command completed in %0.2fs" % (time.time() - t)
+        return dict(stdout=stdout, stderr=stderr, code=return_code)
+
+    def mount_guest(self):
+        disk_name = self.name + "_disk1.vdi"  # conditional on hypervisor
+        disk_path = os.path.join(self.directory, self.name, disk_name)
+        guest = guestfs.GuestFS(python_return_dict=True)
+        guest.add_drive_opts(disk_path, readonly=1)
+        guest.launch()
+        guest.mount_ro("/dev/sda1", "/")
+        return guest
+
+    def analyze_image(self):
+        """ Analyze a disk image """
+        guest = self.mount_guest()
+        loader = unittest2.TestLoader()
+        # yes this is horrific
+        core.guest = guest
+        suite = loader.loadTestsFromModule(core)
+        results = StringIO.StringIO()
+        unittest2.TextTestRunner(stream=results, verbosity=2).run(suite)
+        guest.shutdown()
+        return results.getvalue()
+
 class SystemTestManager:
 
     db_name = "hyperkit.sqlite"
-    timeout = 500
     hypervisors = ["vbox", "vmware"]
 
     distros = [{
@@ -114,31 +245,6 @@ class SystemTestManager:
             return False
         return True
 
-    def terminate(self):
-        if self.executing.poll() is None:
-            print "Test taking too long, terminating running process"
-            try:
-                self.executing.kill()
-            except:
-                # ignore race condition
-                pass
-
-    def hyperkit(self, command, hypervisor, args):
-        command = ["hyperkit",
-                   "--debug",
-                   "--directory", self.directory,
-                   "--hypervisor", hypervisor,
-                   command,
-                   ] + args
-        print "Executing", " ".join(command)
-        t = time.time()
-        self.executing = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        stdout, stderr = self.executing.communicate()
-        return_code = self.executing.returncode
-        self.executing = None
-        print "Command completed in %0.2fs" % (time.time() - t)
-        return dict(stdout=stdout, stderr=stderr, code=return_code)
-
     def test_kernel_permissions(self):
         p = subprocess.Popen(["uname", "-r"], stdout=subprocess.PIPE)
         release = p.stdout.read().strip()
@@ -148,61 +254,11 @@ class SystemTestManager:
 
     def exec_test(self, hypervisor, distro, release, arch):
         self.test_kernel_permissions()
-        instance = "-".join([hypervisor, distro, release, arch])
-        name = "system_test-" + instance
-        results = {}
-
-        path = os.path.join(self.directory, name)
-        if os.path.exists(path):
-            raise KeyError("Path %r already exists" % path)
-
-        r = self.hyperkit("create", hypervisor, ["--password", "password", name, distro, release, arch])
-        results['create'] = r
-        if r['code'] != 0:
-            self.cleanup(hypervisor, name)
-            return results
-
-        start_time = time.time()
-        timer = threading.Timer(self.timeout, self.terminate)
-        timer.start()
-
-        stages = ["start", "wait", "stop"]
-
-        for stage in stages:
-            r = self.hyperkit(stage, hypervisor, [name])
-            results[stage] = r
-            if r['code'] != 0:
-                results['failed_at'] = stage
-                self.cleanup(hypervisor, name)
-                timer.cancel()
-                return results
-
-        timer.cancel()
-
-        results["analysis"] = self.analyze_image(hypervisor, name)
-        self.cleanup(hypervisor, name)
-        return results
-
-    def cleanup(self, hypervisor, name):
-        self.hyperkit("cleanup", hypervisor, ["--yes", name])
-
-    def mount_guest(self, name, disk_name):
-        disk_path = os.path.join(self.directory, name, disk_name)
-        guest = guestfs.GuestFS(python_return_dict=True)
-        guest.add_drive_opts(disk_path, readonly=1)
-        guest.launch()
-        guest.mount_ro("/dev/sda1", "/")
-        return guest
-
-    def analyze_image(self, hypervisor, name):
-        """ Analyze a disk image """
-        disk_name = name + "_disk1.vdi"  # conditional on hypervisor
-        guest = self.mount_guest(name, disk_name)
-        loader = unittest2.TestLoader()
-        # yes this is horrific
-        core.guest = guest
-        suite = loader.loadTestsFromModule(core)
-        results = StringIO.StringIO()
-        unittest2.TextTestRunner(stream=results, verbosity=2).run(suite)
-        guest.shutdown()
-        return results.getvalue()
+        run = TestRun(self.directory, hypervisor, distro, release, arch)
+        try:
+            run.create()
+            run.run()
+        except TestRunFailed:
+            print "Test run failed"
+            return run.results
+        return run.results
