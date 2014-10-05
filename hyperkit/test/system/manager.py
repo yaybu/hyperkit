@@ -29,7 +29,7 @@ class TestRunFailed(Exception):
 
 class TestRun(object):
 
-    timeout = 500
+    timeout = 120
 
     def __init__(self, directory, hypervisor, distro, release, arch):
         self.directory = directory
@@ -39,6 +39,19 @@ class TestRun(object):
         self.arch = arch
         self.results = {}
         self.executing = None
+        self.guest = None
+        self.timer = None
+
+    def __enter__(self):
+        self.create()
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        self.stop_timer()
+        self.terminate()
+        self.cleanup()
+        if self.guest is not None:
+            self.guest.shutdown()
 
     @property
     def username(self):
@@ -79,14 +92,13 @@ class TestRun(object):
         r = self.hyperkit("create", args)
         self.results['create'] = r
         if r['code'] != 0:
-            self.cleanup()
             raise TestRunFailed
 
     def cleanup(self):
         self.hyperkit("cleanup", ["--yes", self.name])
 
     def terminate(self):
-        if self.executing.poll() is None:
+        if self.executing is not None and self.executing.poll() is None:
             print "Test taking too long, terminating running process"
             try:
                 self.executing.kill()
@@ -100,22 +112,21 @@ class TestRun(object):
         self.timer.start()
 
     def stop_timer(self):
-        self.timer.cancel()
+        if self.timer is not None:
+            self.timer.cancel()
 
-    def run(self):
+    def run_tests(self):
+        self.run_stage("start")
+        self.run_stage("wait")
+        self.run_stage("stop")
+        self.analyse()
+        return self.results
+
+    def run_stage(self, stage):
         self.start_timer()
-        stages = ["start", "wait", "stop"]
-        for stage in stages:
-            r = self.hyperkit(stage, [self.name])
-            self.results[stage] = r
-            if r['code'] != 0:
-                self.results['failed_at'] = stage
-                self.cleanup()
-                self.stop_timer()
-                raise TestRunFailed
+        r = self.hyperkit(stage, [self.name])
         self.stop_timer()
-        self.results["analysis"] = self.analyze_image()
-        self.cleanup()
+        self.results[stage] = r
 
     def hyperkit(self, command, args):
         command = ["hyperkit",
@@ -138,23 +149,21 @@ class TestRun(object):
     def mount_guest(self):
         disk_name = self.name + "_disk1.vdi"  # conditional on hypervisor
         disk_path = os.path.join(self.directory, self.name, disk_name)
-        guest = guestfs.GuestFS(python_return_dict=True)
-        guest.add_drive_opts(disk_path, readonly=1)
-        guest.launch()
-        guest.mount_ro("/dev/sda1", "/")
-        return guest
+        self.guest = guestfs.GuestFS(python_return_dict=True)
+        self.guest.add_drive_opts(disk_path, readonly=1)
+        self.guest.launch()
+        self.guest.mount_ro("/dev/sda1", "/")
 
-    def analyze_image(self):
+    def analyse(self):
         """ Analyze a disk image """
-        guest = self.mount_guest()
+        self.mount_guest()
         loader = unittest2.TestLoader()
-        # yes this is horrific
-        core.guest = guest
+        # yes this is horrific. i will fix it at some point.
+        core.guest = self.guest
         suite = loader.loadTestsFromModule(core)
         results = StringIO.StringIO()
         unittest2.TextTestRunner(stream=results, verbosity=2).run(suite)
-        guest.shutdown()
-        return results.getvalue()
+        self.results["analysis"] = results.getvalue()
 
 class SystemTestManager:
 
@@ -254,11 +263,6 @@ class SystemTestManager:
 
     def exec_test(self, hypervisor, distro, release, arch):
         self.test_kernel_permissions()
-        run = TestRun(self.directory, hypervisor, distro, release, arch)
-        try:
-            run.create()
-            run.run()
-        except TestRunFailed:
-            print "Test run failed"
-            return run.results
-        return run.results
+        with TestRun(self.directory, hypervisor, distro, release, arch) as r:
+            results = r.run_tests()
+            return results
