@@ -24,28 +24,6 @@ from . import monitor
 class HyperkitTestError(Exception):
     pass
 
-class GuestManager:
-
-    def __init__(self, hypervisor, disk_path, debug = False):
-        self.debug = debug
-        #disk_name = name + "_disk1.vdi"
-        #self.disk_path = os.path.join(directory, name, disk_name)
-        self.disk_path = disk_path
-        self.guest = guestfs.GuestFS(python_return_dict=True)
-        self.guest.add_drive_opts(self.disk_path, readonly=1)
-
-    def close(self):
-        self.guest.close()
-
-    def mount(self):
-        self.guest.launch()
-        self.guest.mount_ro("/dev/sda1", "/")
-
-    def unmount(self):
-        self.guest.umount_all()
-        self.guest.shutdown()
-
-
 class SystemTestManager:
 
     db_name = "hyperkit.sqlite"
@@ -168,7 +146,6 @@ class SystemTestManager:
         if not os.access(kernel, os.R_OK):
             raise HyperkitTestError("Cannot read kernel %s. You need to chmod +r this file." % kernel)
 
-
     def exec_test(self, hypervisor, distro, release, arch):
         self.test_kernel_permissions()
         instance = "-".join([hypervisor, distro, release, arch])
@@ -185,17 +162,11 @@ class SystemTestManager:
             self.cleanup(hypervisor, name)
             return results
 
-        g = GuestManager(hypervisor, self.directory, name)
-
         start_time = time.time()
         timer = threading.Timer(self.timeout, self.terminate)
         timer.start()
 
-        log_monitor = monitor.LogMonitor(g)
-        log_monitor.start()
-
-        #stages = ["start", "wait", "stop"]
-        stages = ["wait"]
+        stages = ["start", "wait", "stop"]
 
         for stage in stages:
             r = self.hyperkit(stage, hypervisor, [name])
@@ -208,11 +179,6 @@ class SystemTestManager:
 
         timer.cancel()
 
-        # actually wait for it to stop
-        time.sleep(1000)
-
-        log_monitor.stop()
-
         results["analysis"] = self.analyze_image(hypervisor, name)
         self.cleanup(hypervisor, name)
         return results
@@ -220,11 +186,23 @@ class SystemTestManager:
     def cleanup(self, hypervisor, name):
         self.hyperkit("cleanup", hypervisor, ["--yes", name])
 
+    def mount_guest(self, name, disk_name):
+        disk_path = os.path.join(self.directory, name, disk_name)
+        guest = guestfs.GuestFS(python_return_dict=True)
+        guest.add_drive_opts(disk_path, readonly=1)
+        guest.launch()
+        guest.mount_ro("/dev/sda1", "/")
+        return guest
+
     def analyze_image(self, hypervisor, name):
         """ Analyze a disk image """
+        disk_name = name + "_disk1.vdi"  # conditional on hypervisor
+        guest = self.mount_guest(name, disk_name)
         loader = unittest2.TestLoader()
+        # yes this is horrific
+        core.guest = guest
         suite = loader.loadTestsFromModule(core)
         results = StringIO.StringIO()
         unittest2.TextTestRunner(stream=results, verbosity=2).run(suite)
-        g.shutdown()
+        guest.shutdown()
         return results.getvalue()
